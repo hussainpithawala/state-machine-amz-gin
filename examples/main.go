@@ -8,6 +8,7 @@ import (
 
 	statemachinegin "github.com/hussainpithawala/state-machine-amz-gin"
 	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
 )
@@ -65,11 +66,41 @@ func main() {
 		log.Println("Queue client initialized successfully")
 	}
 
+	// Create BaseExecutor with StateRegistry for all task handlers
+	baseExecutor := executor.NewBaseExecutor()
+	executor.NewStateRegistry().G
+	log.Println("BaseExecutor initialized with task handler registry")
+
+	// Setup background worker configuration (optional)
+	var workerConfig *middleware.WorkerConfig
+	if queueClient != nil {
+		workerConfig = &middleware.WorkerConfig{
+			QueueConfig:       queueConfig,
+			RepositoryManager: repoManager,
+			BaseExecutor:      baseExecutor,
+			EnableWorker:      true, // Set to true to enable background worker
+		}
+	}
+
 	// Setup Gin server with state machine middleware
 	serverConfig := &middleware.Config{
 		RepositoryManager: repoManager,
 		QueueClient:       queueClient,
+		BaseExecutor:      baseExecutor,
+		WorkerConfig:      workerConfig,
 		BasePath:          "/state-machines/api/v1",
+	}
+
+	// Create and start background worker if configured
+	worker, err := middleware.NewWorker(workerConfig)
+	if err != nil {
+		log.Fatalf("Failed to create worker: %v", err)
+	}
+	if worker != nil {
+		defer worker.Stop()
+		if err := worker.Start(); err != nil {
+			log.Fatalf("Failed to start worker: %v", err)
+		}
 	}
 
 	router := statemachinegin.NewServer(serverConfig)

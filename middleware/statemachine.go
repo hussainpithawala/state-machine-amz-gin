@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
 )
@@ -10,10 +11,12 @@ import (
 type Config struct {
 	RepositoryManager *repository.Manager
 	QueueClient       *queue.Client
-	BasePath          string // e.g., "/api/v1"
+	BaseExecutor      *executor.BaseExecutor
+	WorkerConfig      *WorkerConfig // Optional: Configuration for background worker
+	BasePath          string        // e.g., "/api/v1"
 }
 
-// StateMachineMiddleware injects repository manager and queue client into gin context
+// StateMachineMiddleware injects repository manager, queue client, and base executor into gin context
 func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if config.RepositoryManager != nil {
@@ -21,6 +24,9 @@ func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 		}
 		if config.QueueClient != nil {
 			c.Set("queueClient", config.QueueClient)
+		}
+		if config.BaseExecutor != nil {
+			c.Set("baseExecutor", config.BaseExecutor)
 		}
 		c.Next()
 	}
@@ -44,6 +50,16 @@ func GetQueueClient(c *gin.Context) (*queue.Client, bool) {
 	}
 	queueClient, ok := client.(*queue.Client)
 	return queueClient, ok
+}
+
+// GetBaseExecutor retrieves the base executor from gin context
+func GetBaseExecutor(c *gin.Context) (*executor.BaseExecutor, bool) {
+	exec, exists := c.Get("baseExecutor")
+	if !exists {
+		return nil, false
+	}
+	baseExecutor, ok := exec.(*executor.BaseExecutor)
+	return baseExecutor, ok
 }
 
 // ErrorHandler is a middleware that handles panics and returns proper error responses
