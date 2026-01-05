@@ -13,12 +13,21 @@ import (
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/statemachine/persistent"
 )
 
-// StartExecution starts a new execution for a state machine
+// StartExecution queues a new execution for a state machine
 func StartExecution(c *gin.Context) {
 	repoManager, ok := middleware.GetRepositoryManager(c)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: "Repository manager not configured",
+			Code:  http.StatusInternalServerError,
+		})
+		return
+	}
+
+	queueClient, ok := middleware.GetQueueClient(c)
+	if !ok || queueClient == nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Queue client not configured",
 			Code:  http.StatusInternalServerError,
 		})
 		return
@@ -36,7 +45,7 @@ func StartExecution(c *gin.Context) {
 		return
 	}
 
-	// Load state machine
+	// Load state machine to validate it exists
 	sm, err := persistent.NewFromDefnId(c.Request.Context(), stateMachineID, repoManager)
 	if err != nil {
 		c.JSON(http.StatusNotFound, models.ErrorResponse{
@@ -47,22 +56,22 @@ func StartExecution(c *gin.Context) {
 		return
 	}
 
-	// Execute with name option
-	exec, err := sm.Execute(
+	// Queue the execution instead of executing directly
+	exec, err := sm.QueueExecution(
 		c.Request.Context(),
 		req.Input,
 		statemachine.WithExecutionName(req.Name),
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "Execution failed",
+			Error:   "Failed to queue execution",
 			Message: err.Error(),
 			Code:    http.StatusInternalServerError,
 		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, models.StartExecutionResponse{
+	c.JSON(http.StatusAccepted, models.StartExecutionResponse{
 		ExecutionID:    exec.ID,
 		StateMachineID: exec.StateMachineID,
 		Name:           exec.Name,
