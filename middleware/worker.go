@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/handler"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
-	"github.com/hussainpithawala/state-machine-amz-go/pkg/statemachine/persistent"
 )
 
 // WorkerConfig holds configuration for the background worker
@@ -57,11 +57,13 @@ func NewWorker(config *WorkerConfig) (*Worker, error) {
 	// Create execution context adapter
 	execAdapter := executor.NewExecutionContextAdapter(config.BaseExecutor)
 
+	queueClient, err := queue.NewClient(config.QueueConfig)
+
 	// Create execution handler with executor
-	handler := persistent.NewExecutionHandlerWithContext(config.RepositoryManager, execAdapter)
+	newExecutionHandlerWithContext := handler.NewExecutionHandlerWithContext(config.RepositoryManager, queueClient, execAdapter)
 
 	// Create queue worker with handler
-	queueWorker, err := queue.NewWorker(config.QueueConfig, handler)
+	queueWorker, err := queue.NewWorker(config.QueueConfig, newExecutionHandlerWithContext)
 	if err != nil {
 		return nil, err
 	}

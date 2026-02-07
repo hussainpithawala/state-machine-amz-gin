@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -8,14 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
 	"github.com/hussainpithawala/state-machine-amz-gin/models"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/statemachine"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/statemachine/persistent"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/types"
 )
 
 // StartExecution queues a new execution for a state machine
 func StartExecution(c *gin.Context) {
 	repoManager, ok := middleware.GetRepositoryManager(c)
+	baseExecutor, ok := middleware.GetBaseExecutor(c)
+
 	if !ok {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error: "Repository manager not configured",
@@ -56,9 +61,11 @@ func StartExecution(c *gin.Context) {
 		return
 	}
 
+	ctx := context.WithValue(c.Request.Context(), types.ExecutionContextKey, executor.NewExecutionContextAdapter(baseExecutor))
+
 	// Queue the execution instead of executing directly
-	exec, err := sm.QueueExecution(
-		c.Request.Context(),
+	exec, err := sm.Execute(
+		ctx,
 		req.Input,
 		statemachine.WithExecutionName(req.Name),
 	)

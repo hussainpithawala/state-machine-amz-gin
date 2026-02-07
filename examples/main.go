@@ -68,7 +68,7 @@ func main() {
 
 	// Create BaseExecutor with StateRegistry for all task handlers
 	baseExecutor := executor.NewBaseExecutor()
-	registerGlobalFunctions(baseExecutor)
+	RegisterGlobalFunctions(baseExecutor)
 	log.Println("BaseExecutor initialized with task handler registry")
 
 	// Setup background worker configuration (optional)
