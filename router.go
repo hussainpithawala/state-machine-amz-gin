@@ -27,6 +27,9 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 		api.GET("/health", handlers.HealthCheck)
 		//api.GET("/queue/stats", handlers.GetQueueStats)
 
+		// API Documentation
+		api.GET("/openapi.json", handlers.GetOpenAPISpec)
+
 		// State Machine Management
 		api.POST("/state-machines", handlers.CreateStateMachine)
 		api.GET("/state-machines/:stateMachineId", handlers.GetStateMachine)

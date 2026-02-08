@@ -57,15 +57,34 @@ func ExecuteBatch(c *gin.Context) {
 	// Build execution filter from request
 	var filter *repository.ExecutionFilter
 	if req.Filter != nil {
-		filter = &repository.ExecutionFilter{
-			StateMachineID: req.Filter.StateMachineID,
-			Status:         req.Filter.Status,
-			Limit:          req.Filter.Limit,
-			Offset:         req.Filter.Offset,
-		}
-		if filter.StateMachineID == "" {
+		filter = &repository.ExecutionFilter{}
+
+		if req.Filter.SourceStateMachineId != "" {
+			filter.StateMachineID = req.Filter.SourceStateMachineId
+		} else {
 			filter.StateMachineID = stateMachineID
 		}
+
+		if req.Filter.Status != "" {
+			filter.Status = req.Filter.Status
+		}
+
+		if req.Filter.Limit != 0 {
+			filter.Limit = req.Filter.Limit
+		}
+
+		if req.Filter.Offset != 0 {
+			filter.Offset = req.Filter.Offset
+		}
+
+		if req.Filter.StartTimeFrom != 0 {
+			filter.StartAfter = time.Unix(req.Filter.StartTimeTo, 0)
+		}
+
+		if req.Filter.StartTimeTo != 0 {
+			filter.StartBefore = time.Unix(req.Filter.StartTimeFrom, 0)
+		}
+
 	}
 
 	// Default values

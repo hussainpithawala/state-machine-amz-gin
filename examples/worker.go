@@ -2,18 +2,21 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	statemachinegin "github.com/hussainpithawala/state-machine-amz-gin"
 	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
 )
 
-func main() {
+// This example demonstrates how to run a standalone worker
+// that consumes execution tasks from Redis queue
+func runStandaloneWorker() {
 	ctx := context.Background()
 
 	// Setup repository manager (PostgreSQL with GORM)
@@ -67,68 +70,41 @@ func main() {
 		queueConfig.Queues[queueName] = 5
 	}
 
-	queueClient, err := queue.NewClient(queueConfig)
-	if err != nil {
-		log.Printf("Warning: Failed to create queue client: %v (continuing without queue support)", err)
-		queueClient = nil
-	} else {
-		defer queueClient.Close()
-		log.Println("Queue client initialized successfully")
-	}
-
-	// Create BaseExecutor with StateRegistry for all task handlers
 	baseExecutor := executor.NewBaseExecutor()
-	RegisterGlobalFunctions(baseExecutor)
 	log.Println("BaseExecutor initialized with task handler registry")
 
-	// Setup background worker configuration (optional)
-	var workerConfig *middleware.WorkerConfig
-	if queueClient != nil {
-		workerConfig = &middleware.WorkerConfig{
-			QueueConfig:       queueConfig,
-			RepositoryManager: repoManager,
-			BaseExecutor:      baseExecutor,
-			EnableWorker:      true, // Set to true to enable background worker
-		}
-	}
-
-	// Setup Gin server with state machine middleware
-	serverConfig := &middleware.Config{
+	// Setup worker configuration
+	workerConfig := &middleware.WorkerConfig{
+		QueueConfig:       queueConfig,
 		RepositoryManager: repoManager,
-		QueueClient:       queueClient,
 		BaseExecutor:      baseExecutor,
-		WorkerConfig:      workerConfig,
-		BasePath:          "/state-machines/api/v1",
+		EnableWorker:      true,
 	}
 
-	// Create and start background worker if configured
+	// Create worker
 	worker, err := middleware.NewWorker(workerConfig)
 	if err != nil {
 		log.Fatalf("Failed to create worker: %v", err)
 	}
-	if worker != nil {
-		defer worker.Stop()
-		if err := worker.Start(); err != nil {
-			log.Fatalf("Failed to start worker: %v", err)
-		}
+
+	if worker == nil {
+		log.Fatal("Worker is nil, cannot start")
 	}
 
-	router := statemachinegin.NewServer(serverConfig)
+	// Setup graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start server
-	port := 9090
-	addr := fmt.Sprintf(":%d", port)
-
-	log.Printf("Starting state machine REST API server on %s", addr)
-	log.Printf("API Documentation available at http://localhost%s/health", addr)
-	log.Printf("Example endpoints:")
-	log.Printf("  - POST   http://localhost%s/api/v1/state-machines", addr)
-	log.Printf("  - GET    http://localhost%s/api/v1/state-machines", addr)
-	log.Printf("  - POST   http://localhost%s/api/v1/state-machines/:id/executions", addr)
-	log.Printf("  - GET    http://localhost%s/api/v1/executions/:id", addr)
-	log.Printf("  - GET    http://localhost%s/api/v1/health", addr)
-
-	if err := router.Run(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	// Start worker
+	if err := worker.Start(); err != nil {
+		log.Fatalf("Failed to start worker: %v", err)
 	}
+
+	log.Println("Standalone worker is running. Press Ctrl+C to shutdown gracefully.")
+
+	// Wait for shutdown signal
+	<-sigChan
+	log.Println("Shutdown signal received, stopping worker...")
+	worker.Stop()
+	log.Println("Worker stopped successfully")
 }

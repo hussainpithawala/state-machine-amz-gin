@@ -1,0 +1,331 @@
+{
+  "info": {
+    "name": "State Machine API",
+    "description": "API for managing state machines and executions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/state-machines/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "stateMachineId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "executionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Monitoring",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "State Machines",
+      "item": [
+        {
+          "name": "Create State Machine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"my-state-machine\",\n  \"name\": \"My State Machine\",\n  \"description\": \"Description of my state machine\",\n  \"definition\": {\n    \"Comment\": \"A Hello World example\",\n    \"StartAt\": \"HelloWorld\",\n    \"States\": {\n      \"HelloWorld\": {\n        \"Type\": \"Pass\",\n        \"Result\": \"Hello World!\",\n        \"End\": true\n      }\n    }\n  },\n  \"type\": \"STANDARD\",\n  \"version\": \"1.0\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/state-machines",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines"]
+            }
+          }
+        },
+        {
+          "name": "Get State Machine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}"]
+            }
+          }
+        },
+        {
+          "name": "List State Machines",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/state-machines?name=",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines"],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "description": "Filter by name"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Executions",
+      "item": [
+        {
+          "name": "Start Execution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"execution-1\",\n  \"input\": {\n    \"key\": \"value\"\n  },\n  \"sourceExecutionId\": \"\",\n  \"sourceStateName\": \"\",\n  \"sourceInputTransformer\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}", "executions"]
+            }
+          }
+        },
+        {
+          "name": "Get Execution",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/executions/{{executionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["executions", "{{executionId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Executions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions?status=&limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}", "executions"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status (RUNNING, SUCCEEDED, FAILED, etc.)"
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Number of results to return"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Offset for pagination"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Count Executions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions/count?status=",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}", "executions", "count"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stop Execution",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/executions/{{executionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["executions", "{{executionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Execution History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/executions/{{executionId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["executions", "{{executionId}}", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Batch Operations",
+      "item": [
+        {
+          "name": "Execute Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filter\": {\n    \"status\": \"FAILED\",\n    \"limit\": 10\n  },\n  \"namePrefix\": \"retry-batch\",\n  \"concurrency\": 5,\n  \"mode\": \"distributed\",\n  \"stopOnError\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}", "executions", "batch"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Queue Operations",
+      "item": [
+        {
+          "name": "Enqueue Execution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stateMachineId\": \"my-state-machine\",\n  \"executionName\": \"queued-execution-1\",\n  \"input\": {\n    \"key\": \"value\"\n  },\n  \"queue\": \"default\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/queue/enqueue",
+              "host": ["{{baseUrl}}"],
+              "path": ["queue", "enqueue"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Message & Resume Operations",
+      "item": [
+        {
+          "name": "Resume Execution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"output\": {\n    \"result\": \"completed\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/executions/{{executionId}}/resume",
+              "host": ["{{baseUrl}}"],
+              "path": ["executions", "{{executionId}}", "resume"]
+            }
+          }
+        },
+        {
+          "name": "Resume By Correlation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correlationKey\": \"orderId\",\n  \"correlationValue\": \"12345\",\n  \"output\": {\n    \"status\": \"approved\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/resume-by-correlation",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}", "resume-by-correlation"]
+            }
+          }
+        },
+        {
+          "name": "Find Waiting Executions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/waiting?correlationKey=orderId&correlationValue=12345",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}", "waiting"],
+              "query": [
+                {
+                  "key": "correlationKey",
+                  "value": "orderId"
+                },
+                {
+                  "key": "correlationValue",
+                  "value": "12345"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

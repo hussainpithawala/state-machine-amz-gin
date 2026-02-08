@@ -22,8 +22,11 @@ type UpdateStateMachineRequest struct {
 
 // StartExecutionRequest represents a request to start an execution
 type StartExecutionRequest struct {
-	Name  string      `json:"name" binding:"required"`
-	Input interface{} `json:"input"`
+	Name                   string      `json:"name" binding:"required"`
+	Input                  interface{} `json:"input"`
+	SourceExecutionID      string      `json:"sourceExecutionId,omitempty"`      // ID of execution whose output will be used as input
+	SourceStateName        string      `json:"sourceStateName,omitempty"`        // Optional: specific state's output to use from source execution
+	SourceInputTransformer string      `json:"sourceInputTransformer,omitempty"` // Optional: JSONPath or transformation expression to apply
 }
 
 // ResumeExecutionRequest represents a request to resume a paused execution
@@ -50,14 +53,14 @@ type ExecuteBatchRequest struct {
 
 // ExecutionFilterRequest represents filter parameters for listing executions
 type ExecutionFilterRequest struct {
-	StateMachineID string   `json:"stateMachineId"`
-	Status         string   `json:"status"`
-	StartTimeFrom  int64    `json:"startTimeFrom"`
-	StartTimeTo    int64    `json:"startTimeTo"`
-	NamePattern    string   `json:"namePattern"`
-	Limit          int      `json:"limit"`
-	Offset         int      `json:"offset"`
-	States         []string `json:"states"`
+	SourceStateMachineId string   `json:"sourceStateMachineId"`
+	Status               string   `json:"status"`
+	StartTimeFrom        int64    `json:"startTimeFrom"`
+	StartTimeTo          int64    `json:"startTimeTo"`
+	NamePattern          string   `json:"namePattern"`
+	Limit                int      `json:"limit"`
+	Offset               int      `json:"offset"`
+	States               []string `json:"states"`
 }
 
 // EnqueueExecutionRequest represents a request to enqueue an execution task

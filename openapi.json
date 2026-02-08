@@ -1,0 +1,1099 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "State Machine API",
+    "description": "REST API for managing state machines and executions",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/state-machines/api/v1",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "State Machines",
+      "description": "State machine management"
+    },
+    {
+      "name": "Executions",
+      "description": "Execution management"
+    },
+    {
+      "name": "Batch",
+      "description": "Batch execution operations"
+    },
+    {
+      "name": "Queue",
+      "description": "Queue operations"
+    },
+    {
+      "name": "Messages",
+      "description": "Message and resume operations"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Check the health status of the service and its dependencies",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service is unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/state-machines": {
+      "post": {
+        "tags": ["State Machines"],
+        "summary": "Create state machine",
+        "description": "Create a new state machine definition",
+        "operationId": "createStateMachine",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStateMachineRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "State machine created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StateMachineResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "get": {
+        "tags": ["State Machines"],
+        "summary": "List state machines",
+        "description": "Retrieve a list of all state machines with optional filtering",
+        "operationId": "listStateMachines",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Filter by state machine name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of state machines",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListStateMachinesResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/state-machines/{stateMachineId}": {
+      "get": {
+        "tags": ["State Machines"],
+        "summary": "Get state machine",
+        "description": "Retrieve a state machine by ID",
+        "operationId": "getStateMachine",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StateMachineId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "State machine details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StateMachineResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/state-machines/{stateMachineId}/executions": {
+      "post": {
+        "tags": ["Executions"],
+        "summary": "Start execution",
+        "description": "Start a new execution for a state machine",
+        "operationId": "startExecution",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StateMachineId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartExecutionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Execution started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "get": {
+        "tags": ["Executions"],
+        "summary": "List executions",
+        "description": "List all executions for a state machine with filtering and pagination",
+        "operationId": "listExecutions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StateMachineId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by execution status",
+            "schema": {
+              "type": "string",
+              "enum": ["RUNNING", "SUCCEEDED", "FAILED", "CANCELLED", "PAUSED"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of executions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListExecutionsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/state-machines/{stateMachineId}/executions/count": {
+      "get": {
+        "tags": ["Executions"],
+        "summary": "Count executions",
+        "description": "Get the count of executions matching the filter criteria",
+        "operationId": "countExecutions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StateMachineId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by execution status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/state-machines/{stateMachineId}/executions/batch": {
+      "post": {
+        "tags": ["Batch"],
+        "summary": "Execute batch",
+        "description": "Execute a batch of executions with specified parameters",
+        "operationId": "executeBatch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StateMachineId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch execution initiated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/state-machines/{stateMachineId}/resume-by-correlation": {
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Resume by correlation",
+        "description": "Resume executions waiting on a specific correlation key/value pair",
+        "operationId": "resumeByCorrelation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StateMachineId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeByCorrelationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Executions resumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeByCorrelationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/state-machines/{stateMachineId}/waiting": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Find waiting executions",
+        "description": "Find executions waiting on a specific correlation",
+        "operationId": "findWaitingExecutions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StateMachineId"
+          },
+          {
+            "name": "correlationKey",
+            "in": "query",
+            "required": true,
+            "description": "The correlation key to search for",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "correlationValue",
+            "in": "query",
+            "required": true,
+            "description": "The correlation value to search for",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of waiting executions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExecutionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/executions/{executionId}": {
+      "get": {
+        "tags": ["Executions"],
+        "summary": "Get execution",
+        "description": "Retrieve details of a specific execution",
+        "operationId": "getExecution",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ExecutionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Executions"],
+        "summary": "Stop execution",
+        "description": "Stop a running execution",
+        "operationId": "stopExecution",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ExecutionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution stopped",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/executions/{executionId}/history": {
+      "get": {
+        "tags": ["Executions"],
+        "summary": "Get execution history",
+        "description": "Retrieve the state transition history for an execution",
+        "operationId": "getExecutionHistory",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ExecutionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StateHistoryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/executions/{executionId}/resume": {
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Resume execution",
+        "description": "Resume a paused execution (e.g., waiting on a Message state)",
+        "operationId": "resumeExecution",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ExecutionId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeExecutionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Execution resumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/queue/enqueue": {
+      "post": {
+        "tags": ["Queue"],
+        "summary": "Enqueue execution",
+        "description": "Add an execution task to the distributed queue",
+        "operationId": "enqueueExecution",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueExecutionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Execution enqueued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnqueueExecutionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "StateMachineId": {
+        "name": "stateMachineId",
+        "in": "path",
+        "required": true,
+        "description": "Unique identifier of the state machine",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ExecutionId": {
+        "name": "executionId",
+        "in": "path",
+        "required": true,
+        "description": "Unique identifier of the execution",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "code"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "message": {
+            "type": "string",
+            "description": "Detailed error message"
+          },
+          "code": {
+            "type": "integer",
+            "description": "HTTP status code"
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status", "services"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "unhealthy"]
+          },
+          "services": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CreateStateMachineRequest": {
+        "type": "object",
+        "required": ["id", "name", "definition"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the state machine"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the state machine"
+          },
+          "definition": {
+            "type": "object",
+            "description": "State machine definition (Amazon States Language)"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of state machine"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version identifier"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "StateMachineResponse": {
+        "type": "object",
+        "required": ["id", "name", "definition", "version", "createdAt", "updatedAt"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object"
+          },
+          "type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ListStateMachinesResponse": {
+        "type": "object",
+        "required": ["stateMachines", "total"],
+        "properties": {
+          "stateMachines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StateMachineResponse"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "StartExecutionRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the execution"
+          },
+          "input": {
+            "type": "object",
+            "description": "Input data for the execution"
+          }
+        }
+      },
+      "StartExecutionResponse": {
+        "type": "object",
+        "required": ["executionId", "stateMachineId", "name", "status", "startTime"],
+        "properties": {
+          "executionId": {
+            "type": "string"
+          },
+          "stateMachineId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "input": {
+            "type": "object"
+          }
+        }
+      },
+      "ExecutionResponse": {
+        "type": "object",
+        "required": ["executionId", "stateMachineId", "name", "status", "currentState", "startTime"],
+        "properties": {
+          "executionId": {
+            "type": "string"
+          },
+          "stateMachineId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["RUNNING", "SUCCEEDED", "FAILED", "CANCELLED", "PAUSED"]
+          },
+          "currentState": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object"
+          },
+          "output": {
+            "type": "object"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ListExecutionsResponse": {
+        "type": "object",
+        "required": ["executions", "total", "limit", "offset"],
+        "properties": {
+          "executions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExecutionResponse"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "StateHistoryResponse": {
+        "type": "object",
+        "required": ["id", "executionId", "stateName", "stateType", "status", "startTime", "retryCount", "sequenceNumber"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "executionId": {
+            "type": "string"
+          },
+          "stateName": {
+            "type": "string"
+          },
+          "stateType": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object"
+          },
+          "output": {
+            "type": "object"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          },
+          "retryCount": {
+            "type": "integer"
+          },
+          "sequenceNumber": {
+            "type": "integer"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ExecuteBatchRequest": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/ExecutionFilterRequest"
+          },
+          "namePrefix": {
+            "type": "string",
+            "description": "Prefix for execution names in the batch"
+          },
+          "concurrency": {
+            "type": "integer",
+            "description": "Number of concurrent executions",
+            "default": 10
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["distributed", "concurrent", "sequential"],
+            "description": "Execution mode"
+          },
+          "stopOnError": {
+            "type": "boolean",
+            "description": "Stop batch if an error occurs"
+          },
+          "executionNameList": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ExecutionFilterRequest": {
+        "type": "object",
+        "properties": {
+          "stateMachineId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "startTimeFrom": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startTimeTo": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "namePattern": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "states": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BatchExecutionResponse": {
+        "type": "object",
+        "required": ["batchId", "totalEnqueued", "totalFailed", "mode"],
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "totalEnqueued": {
+            "type": "integer"
+          },
+          "totalFailed": {
+            "type": "integer"
+          },
+          "mode": {
+            "type": "string"
+          }
+        }
+      },
+      "EnqueueExecutionRequest": {
+        "type": "object",
+        "required": ["stateMachineId", "executionName"],
+        "properties": {
+          "stateMachineId": {
+            "type": "string"
+          },
+          "executionName": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object"
+          },
+          "queue": {
+            "type": "string"
+          },
+          "sourceExecutionId": {
+            "type": "string"
+          },
+          "sourceStateName": {
+            "type": "string"
+          }
+        }
+      },
+      "EnqueueExecutionResponse": {
+        "type": "object",
+        "required": ["taskId", "queue", "enqueuedAt"],
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "queue": {
+            "type": "string"
+          },
+          "enqueuedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ResumeExecutionRequest": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "object",
+            "description": "Output data to resume with"
+          }
+        }
+      },
+      "ResumeByCorrelationRequest": {
+        "type": "object",
+        "required": ["correlationKey", "correlationValue"],
+        "properties": {
+          "correlationKey": {
+            "type": "string"
+          },
+          "correlationValue": {
+            "type": "object"
+          },
+          "output": {
+            "type": "object"
+          }
+        }
+      },
+      "ResumeByCorrelationResponse": {
+        "type": "object",
+        "required": ["resumedCount", "executionIds"],
+        "properties": {
+          "resumedCount": {
+            "type": "integer"
+          },
+          "executionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

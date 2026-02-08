@@ -1,11 +1,11 @@
 services:
-  postgres_sm_test:
+  postgres_sm_gin:
     image: postgres:14.1-alpine
     restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DATABASE=statemachine_test
+      - POSTGRES_DATABASE=statemachine_gin
     ports:
       - '5432:5432'
     volumes:
@@ -13,7 +13,7 @@ services:
       - "./postgres_14/data:/var/lib/postgresql/data:delegated"
     command: "postgres -c config_file=/usr/local/etc/postgres/postgres.conf"
     networks:
-      - statemachine-network
+      - statemachine-gin-network
 
   redis:
     image: redis:7-alpine
@@ -24,7 +24,7 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - statemachine-network
+      - statemachine-gin-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,19 +32,28 @@ services:
       retries: 5
 
   asynqmon:
-    image: asynqmon:local
+    image: hussainp/asynqmon:0.7.2
+    container_name: statemachine-asynqmon
     restart: always
     ports:
       - '8080:8080'
     environment:
       - REDIS_ADDR=redis:6379
+      - REDIS_DB=0
+      - ENABLE_METRICS=true
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
-      - statemachine-network
+      - statemachine-gin-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
-  statemachine-network:
+  statemachine-gin-network:
     driver: bridge
 
 volumes:
