@@ -53,14 +53,14 @@ type ExecuteBatchRequest struct {
 
 // ExecutionFilterRequest represents filter parameters for listing executions
 type ExecutionFilterRequest struct {
-	StateMachineID string   `json:"stateMachineId"`
-	Status         string   `json:"status"`
-	StartTimeFrom  int64    `json:"startTimeFrom"`
-	StartTimeTo    int64    `json:"startTimeTo"`
-	NamePattern    string   `json:"namePattern"`
-	Limit          int      `json:"limit"`
-	Offset         int      `json:"offset"`
-	States         []string `json:"states"`
+	SourceStateMachineId string   `json:"sourceStateMachineId"`
+	Status               string   `json:"status"`
+	StartTimeFrom        int64    `json:"startTimeFrom"`
+	StartTimeTo          int64    `json:"startTimeTo"`
+	NamePattern          string   `json:"namePattern"`
+	Limit                int      `json:"limit"`
+	Offset               int      `json:"offset"`
+	States               []string `json:"states"`
 }
 
 // EnqueueExecutionRequest represents a request to enqueue an execution task
