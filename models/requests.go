@@ -22,8 +22,11 @@ type UpdateStateMachineRequest struct {
 
 // StartExecutionRequest represents a request to start an execution
 type StartExecutionRequest struct {
-	Name  string      `json:"name" binding:"required"`
-	Input interface{} `json:"input"`
+	Name                   string      `json:"name" binding:"required"`
+	Input                  interface{} `json:"input"`
+	SourceExecutionID      string      `json:"sourceExecutionId,omitempty"`      // ID of execution whose output will be used as input
+	SourceStateName        string      `json:"sourceStateName,omitempty"`        // Optional: specific state's output to use from source execution
+	SourceInputTransformer string      `json:"sourceInputTransformer,omitempty"` // Optional: JSONPath or transformation expression to apply
 }
 
 // ResumeExecutionRequest represents a request to resume a paused execution

@@ -111,7 +111,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"execution-1\",\n  \"input\": {\n    \"key\": \"value\"\n  }\n}"
+              "raw": "{\n  \"name\": \"execution-1\",\n  \"input\": {\n    \"key\": \"value\"\n  },\n  \"sourceExecutionId\": \"\",\n  \"sourceStateName\": \"\",\n  \"sourceInputTransformer\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions",
