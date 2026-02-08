@@ -60,6 +60,16 @@ func runStandaloneWorker() {
 		},
 	}
 
+	allStateMachines, err := repoManager.ListStateMachines(ctx, nil)
+	if err != nil {
+		log.Fatalf("Failed to list state machines: %v", err)
+	}
+
+	for i := 0; i < len(allStateMachines); i++ {
+		queueName := allStateMachines[i].ID
+		queueConfig.Queues[queueName] = 5
+	}
+
 	baseExecutor := executor.NewBaseExecutor()
 	log.Println("BaseExecutor initialized with task handler registry")
 

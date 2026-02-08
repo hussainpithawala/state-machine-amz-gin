@@ -57,6 +57,16 @@ func main() {
 		},
 	}
 
+	allStateMachines, err := repoManager.ListStateMachines(ctx, nil)
+	if err != nil {
+		log.Fatalf("Failed to list state machines: %v", err)
+	}
+
+	for i := 0; i < len(allStateMachines); i++ {
+		queueName := allStateMachines[i].ID
+		queueConfig.Queues[queueName] = 5
+	}
+
 	queueClient, err := queue.NewClient(queueConfig)
 	if err != nil {
 		log.Printf("Warning: Failed to create queue client: %v (continuing without queue support)", err)
