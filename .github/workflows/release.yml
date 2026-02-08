@@ -1,0 +1,264 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Validate tag format
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "Invalid tag format: $TAG"
+            echo "Expected format: vX.Y.Z or vX.Y.Z-prerelease"
+            exit 1
+          fi
+
+      - name: Check CHANGELOG
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "CHANGELOG.md missing entry for $VERSION"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: |
+          go test -v -race ./...
+
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+
+  build:
+    name: Build Binaries
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Get version
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "version=$TAG" >> $GITHUB_OUTPUT
+          echo "version_short=${TAG#v}" >> $GITHUB_OUTPUT
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          BINARY_NAME=state-machine-gin-server
+          if [ "$GOOS" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+          
+          LDFLAGS="-s -w -X main.Version=${VERSION} -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          
+          go build \
+            -ldflags="${LDFLAGS}" \
+            -o dist/${BINARY_NAME}-${GOOS}-${GOARCH} \
+            ./examples/main.go
+          
+          # Create archive
+          cd dist
+          if [ "$GOOS" = "windows" ]; then
+            zip ${BINARY_NAME}-${GOOS}-${GOARCH}.zip ${BINARY_NAME}-${GOOS}-${GOARCH}
+          else
+            tar czf ${BINARY_NAME}-${GOOS}-${GOARCH}.tar.gz ${BINARY_NAME}-${GOOS}-${GOARCH}
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: dist/*.{tar.gz,zip}
+
+
+  release:
+    name: Create GitHub Release
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: binaries
+          path: dist/
+
+      - name: Get version
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          
+          # Extract the changelog for this version
+          CHANGELOG=$(awk -v ver="$VERSION" '
+            BEGIN { found=0 }
+            /^## \['"$VERSION"'\]/ { found=1; next }
+            /^## \[/ { if (found) exit }
+            found { print }
+          ' CHANGELOG.md)
+          
+          # Save to file
+          echo "$CHANGELOG" > release-notes.md
+          
+          # Also set as output (escaped)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check if pre-release
+        id: prerelease
+        run: |
+          TAG=${{ steps.version.outputs.tag }}
+          if echo "$TAG" | grep -qE '\-(alpha|beta|rc)'; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.tag }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release summary
+        run: |
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          # Release ${{ steps.version.outputs.tag }} Published! 🚀
+          
+          ## 📦 Artifacts
+          
+          - Docker Image: \`ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}\`
+          - Binaries: Check release assets
+          
+          ## 📝 Changelog
+          
+          ${{ steps.changelog.outputs.notes }}
+          
+          ## 🔗 Links
+          
+          - [Release Page](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})
+          - [Docker Image](https://ghcr.io/${{ github.repository }})
+          - [Documentation](https://pkg.go.dev/github.com/${{ github.repository }}@${{ steps.version.outputs.tag }})
+          EOF
+
+  notify:
+    name: Post-Release Notifications
+    needs: release
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: Get version
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Verify pkg.go.dev indexing
+        run: |
+          # Give pkg.go.dev some time to index
+          sleep 30
+          
+          # Check if the version is indexed
+          URL="https://pkg.go.dev/github.com/${{ github.repository }}@${{ steps.version.outputs.tag }}"
+          echo "Checking: $URL"
+          
+          if curl -f -s -o /dev/null "$URL"; then
+            echo "✅ Package indexed on pkg.go.dev"
+            echo "🔗 $URL"
+          else
+            echo "⏳ Package not yet indexed, but will be soon"
+            echo "🔗 You can manually request indexing at: $URL"
+          fi
+
+      - name: Create success message
+        run: |
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          # ✅ Release Complete
+          
+          Release ${{ steps.version.outputs.tag }} has been successfully published!
+          
+          ## Next Steps
+          
+          1. Monitor pkg.go.dev for indexing
+          2. Update documentation if needed
+          3. Announce on relevant channels
+          4. Monitor for issues
+          
+          ## Resources
+          
+          - Release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}
+          - Package Docs: https://pkg.go.dev/github.com/${{ github.repository }}@${{ steps.version.outputs.tag }}
+          - Docker: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}
+          EOF

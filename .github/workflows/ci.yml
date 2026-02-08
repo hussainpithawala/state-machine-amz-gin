@@ -1,0 +1,291 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.24']
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: statemachine_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+    
+    - name: Verify dependencies
+      run: |
+        go mod download
+        go mod verify
+    
+    - name: Run tests
+      env:
+        DATABASE_URL: postgres://testuser:testpass@localhost:5432/statemachine_test?sslmode=disable
+        REDIS_URL: redis://localhost:6379
+      run: |
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.out
+        flags: unittests
+        name: go-${{ matrix.go-version }}
+        fail_ci_if_error: false
+    
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-${{ matrix.go-version }}
+        path: coverage.out
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+        cache: true
+    
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+        args: --timeout=5m
+    
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    
+    - name: Check formatting
+      run: |
+        if [ -n "$(gofmt -l .)" ]; then
+          echo "Code is not formatted. Run 'go fmt ./...'"
+          gofmt -l .
+          exit 1
+        fi
+    
+    - name: Run go vet
+      run: go vet ./...
+  
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+        cache: true
+    
+    - name: Build
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      run: |
+        go build -v -o bin/server-${{ matrix.goos }}-${{ matrix.goarch }} ./examples
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: bin/
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+    
+    - name: Run Gosec Security Scanner
+      uses: securego/gosec@master
+      with:
+        args: '-no-fail -fmt sarif -out results.sarif ./...'
+    
+    - name: Run govulncheck
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: statemachine_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+        cache: true
+    
+    - name: Run integration tests
+      env:
+        DATABASE_URL: postgres://testuser:testpass@localhost:5432/statemachine_test?sslmode=disable
+        REDIS_URL: redis://localhost:6379
+      run: |
+        go test -v -tags=integration -timeout=5m ./test/integration/...
+
+
+
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Check required files
+      run: |
+        for file in README.md CHANGELOG.md LICENSE; do
+          if [ ! -f "$file" ]; then
+            echo "Missing required file: $file"
+            exit 1
+          fi
+        done
+    
+    - name: Validate OpenAPI spec
+      uses: char0n/swagger-editor-validate@v1
+      with:
+        definition-file: openapi.json
+    
+    - name: Check links in documentation
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        config-file: '.markdown-link-check.json'
+        folder-path: '.'
+        max-depth: 2
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v3
+      with:
+        fail-on-severity: moderate
+
+  all-checks:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [test, lint, format, build, security, integration-test, validate-docs]
+    if: always()
+    
+    steps:
+    - name: Check all jobs
+      run: |
+        if [ "${{ needs.test.result }}" != "success" ] || \
+           [ "${{ needs.lint.result }}" != "success" ] || \
+           [ "${{ needs.format.result }}" != "success" ] || \
+           [ "${{ needs.build.result }}" != "success" ] || \
+           [ "${{ needs.security.result }}" != "success" ] || \
+           [ "${{ needs.integration-test.result }}" != "success" ] || \
+           [ "${{ needs.docker.result }}" != "success" ] || \
+           [ "${{ needs.validate-docs.result }}" != "success" ]; then
+          echo "One or more checks failed"
+          exit 1
+        fi
+        echo "All checks passed successfully!"
