@@ -57,7 +57,7 @@ func NewWorker(config *WorkerConfig) (*Worker, error) {
 	// Create execution context adapter
 	execAdapter := executor.NewExecutionContextAdapter(config.BaseExecutor)
 
-	queueClient, err := queue.NewClient(config.QueueConfig)
+	queueClient, _ := queue.NewClient(config.QueueConfig)
 
 	// Create execution handler with executor
 	newExecutionHandlerWithContext := handler.NewExecutionHandlerWithContext(config.RepositoryManager, queueClient, execAdapter)

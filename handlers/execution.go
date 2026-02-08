@@ -18,7 +18,7 @@ import (
 
 // StartExecution queues a new execution for a state machine
 func StartExecution(c *gin.Context) {
-	repoManager, ok := middleware.GetRepositoryManager(c)
+	repoManager, _ := middleware.GetRepositoryManager(c)
 	baseExecutor, ok := middleware.GetBaseExecutor(c)
 
 	if !ok {
