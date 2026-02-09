@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
-## [1.0.0] - 2026-02-08
+## [1.0.0] - 2026-02-09
 
 ### Added
 - Initial stable release of state-machine-amz-gin

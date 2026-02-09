@@ -1,16 +1,22 @@
 # Makefile for state-machine-amz-gin
-.PHONY: help build test test-unit test-integration test-all clean deps update-deps check-mod \
-	fmt vet lint static-check install-lint validate ci \
-	docker-up docker-down docker-ps docker-logs \
-	build-example test-example \
-	asynqmon godoc info version \
-	bench pre-release release release-ci
+
+.PHONY: help
+help: ## Display this help message
+	@echo "Available targets:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help
 
 # Variables
 PROJECT_NAME := state-machine-amz-gin
 MODULE := github.com/hussainpithawala/state-machine-amz-gin
 GO := go
-GOFLAGS := -v
+GOTEST := $(GO) test
+GOVET := $(GO) vet
+GOFMT := gofmt
+GOLINT := golangci-lint
+COVERAGE_FILE := coverage.out
+COVERAGE_HTML := coverage.html
 DOCKER_COMPOSE := docker-compose -f docker-examples/docker-compose.yml
 EXAMPLE_DIR := ./examples
 ASYNQMON_URL := http://localhost:8080
@@ -20,97 +26,137 @@ BLUE := \033[0;34m
 GREEN := \033[0;32m
 YELLOW := \033[0;33m
 RED := \033[0;31m
-NC := \033[0m # No Color
+NC := \033[0m
 
-##@ Help
+##@ Development
 
-help: ## Show this help message
-	@echo '$(BLUE)$(PROJECT_NAME) - Makefile Commands$(NC)'
-	@echo ''
-	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make $(YELLOW)<target>$(NC)\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 } /^##@/ { printf "\n$(BLUE)%s$(NC)\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+.PHONY: install
+install: ## Install dependencies
+	@echo "$(BLUE)Installing dependencies...$(NC)"
+	$(GO) mod download
+	$(GO) mod verify
+	@echo "$(GREEN)Dependencies installed$(NC)"
 
-##@ Build
+.PHONY: tidy
+tidy: ## Tidy go.mod and go.sum
+	@echo "$(BLUE)Tidying dependencies...$(NC)"
+	$(GO) mod tidy
+	@echo "$(GREEN)Dependencies tidied$(NC)"
 
+.PHONY: vendor
+vendor: ## Create vendor directory
+	@echo "$(BLUE)Creating vendor directory...$(NC)"
+	$(GO) mod vendor
+	@echo "$(GREEN)Vendor directory created$(NC)"
+
+.PHONY: build
 build: ## Build the package
 	@echo "$(BLUE)Building package...$(NC)"
-	$(GO) build $(GOFLAGS) ./...
+	$(GO) build -v ./...
+	@echo "$(GREEN)Build successful$(NC)"
 
-build-example: ## Build examples
-	@echo "$(BLUE)Building examples...$(NC)"
-	$(GO) build $(GOFLAGS) -o bin/example $(EXAMPLE_DIR)
-
-##@ Testing
-
-test: test-all ## Alias for test-all
-
-test-all: test-unit test-integration ## Run all tests
-
-test-unit: ## Run unit tests only (fast, no database)
-	@echo "$(BLUE)Running unit tests...$(NC)"
-	$(GO) test -short -v ./...
-
-test-integration: docker-up ## Run integration tests with real databases
-	@echo "$(BLUE)Running integration tests...$(NC)"
-	@sleep 3
-	$(GO) test -v ./... -tags=integration || ($(MAKE) docker-down && exit 1)
-
-test-example: build-example ## Run example program
-	@echo "$(BLUE)Running example program...$(NC)"
-	./bin/example
-
-bench: ## Run benchmarks
-	@echo "$(BLUE)Running benchmarks...$(NC)"
-	$(GO) test -bench=. -benchmem ./...
+.PHONY: build-example
+build-example: ## Build example server
+	@echo "$(BLUE)Building example server...$(NC)"
+	$(GO) build -v -o bin/example $(EXAMPLE_DIR)
+	@echo "$(GREEN)Example built: bin/example$(NC)"
 
 ##@ Code Quality
 
-fmt: ## Format code
+.PHONY: fmt
+fmt: ## Format Go code
 	@echo "$(BLUE)Formatting code...$(NC)"
+	$(GOFMT) -w -s .
 	$(GO) fmt ./...
-	@echo "$(GREEN)Code formatted successfully$(NC)"
+	@echo "$(GREEN)Code formatted$(NC)"
 
+.PHONY: fmt-check
+fmt-check: ## Check if code is formatted
+	@echo "$(BLUE)Checking code format...$(NC)"
+	@test -z "$$($(GOFMT) -l .)" || (echo "$(RED)Code not formatted. Run 'make fmt'$(NC)"; exit 1)
+	@echo "$(GREEN)Code formatting OK$(NC)"
+
+.PHONY: vet
 vet: ## Run go vet
 	@echo "$(BLUE)Running go vet...$(NC)"
-	$(GO) vet ./...
+	$(GOVET) ./...
+	@echo "$(GREEN)Vet passed$(NC)"
 
-install-lint: ## Install golangci-lint if not present
-	@which golangci-lint > /dev/null || (echo "$(YELLOW)Installing golangci-lint...$(NC)" && \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin)
-
-lint: install-lint ## Run linter
+.PHONY: lint
+lint: ## Run golangci-lint
 	@echo "$(BLUE)Running golangci-lint...$(NC)"
-	golangci-lint run ./...
+	$(GOLINT) run ./...
+	@echo "$(GREEN)Lint passed$(NC)"
 
-static-check: ## Run staticcheck
-	@echo "$(BLUE)Running staticcheck...$(NC)"
-	@which staticcheck > /dev/null || (echo "$(YELLOW)Installing staticcheck...$(NC)" && \
-		go install honnef.co/go/tools/cmd/staticcheck@latest)
-	staticcheck ./...
+.PHONY: lint-fix
+lint-fix: ## Run golangci-lint with auto-fix
+	@echo "$(BLUE)Running golangci-lint with auto-fix...$(NC)"
+	$(GOLINT) run --fix ./...
+	@echo "$(GREEN)Lint fixes applied$(NC)"
 
-validate: fmt vet lint ## Run all validation checks
-	@echo "$(GREEN)All validation checks passed$(NC)"
+##@ Testing
 
-ci: validate test-all ## Run all CI checks locally
-	@echo "$(GREEN)All CI checks passed$(NC)"
+.PHONY: test
+test: ## Run tests
+	@echo "$(BLUE)Running tests...$(NC)"
+	$(GOTEST) -v -race ./...
 
-##@ Dependencies
+.PHONY: test-short
+test-short: ## Run short tests (no integration)
+	@echo "$(BLUE)Running short tests...$(NC)"
+	$(GOTEST) -v -short ./...
 
-deps: ## Download dependencies
-	@echo "$(BLUE)Downloading dependencies...$(NC)"
-	$(GO) mod download
+.PHONY: test-integration
+test-integration: docker-up ## Run integration tests with Docker infrastructure
+	@echo "$(BLUE)Running integration tests...$(NC)"
+	@sleep 3
+	$(GOTEST) -v ./... -tags=integration || ($(MAKE) docker-down && exit 1)
 
-update-deps: ## Update dependencies
-	@echo "$(BLUE)Updating dependencies...$(NC)"
-	$(GO) get -u ./...
-	$(GO) mod tidy
+.PHONY: test-coverage
+test-coverage: ## Run tests with coverage report
+	@echo "$(BLUE)Running tests with coverage...$(NC)"
+	$(GOTEST) -v -race -coverprofile=$(COVERAGE_FILE) -covermode=atomic ./...
+	$(GO) tool cover -html=$(COVERAGE_FILE) -o $(COVERAGE_HTML)
+	@echo "$(GREEN)Coverage report generated: $(COVERAGE_HTML)$(NC)"
 
-check-mod: ## Check module dependencies
-	@echo "$(BLUE)Checking module dependencies...$(NC)"
-	$(GO) mod verify
-	$(GO) mod tidy -diff
+.PHONY: test-coverage-func
+test-coverage-func: ## Show coverage by function
+	@echo "$(BLUE)Generating coverage by function...$(NC)"
+	$(GOTEST) -v -race -coverprofile=$(COVERAGE_FILE) -covermode=atomic ./...
+	$(GO) tool cover -func=$(COVERAGE_FILE)
+
+.PHONY: benchmark
+benchmark: ## Run benchmarks
+	@echo "$(BLUE)Running benchmarks...$(NC)"
+	$(GOTEST) -bench=. -benchmem ./...
+
+##@ Quality Checks
+
+.PHONY: check
+check: fmt-check vet lint test ## Run all quality checks
+
+.PHONY: ci
+ci: install check test-coverage ## Run CI pipeline locally
+
+##@ Security
+
+.PHONY: sec
+sec: ## Run security checks with gosec
+	@echo "$(BLUE)Running security checks...$(NC)"
+	@which gosec > /dev/null || (echo "$(YELLOW)Installing gosec...$(NC)" && go install github.com/securego/gosec/v2/cmd/gosec@latest)
+	gosec -quiet ./...
+	@echo "$(GREEN)Security check passed$(NC)"
+
+.PHONY: vuln
+vuln: ## Check for known vulnerabilities
+	@echo "$(BLUE)Checking for vulnerabilities...$(NC)"
+	@which govulncheck > /dev/null || (echo "$(YELLOW)Installing govulncheck...$(NC)" && go install golang.org/x/vuln/cmd/govulncheck@latest)
+	govulncheck ./...
+	@echo "$(GREEN)Vulnerability check passed$(NC)"
 
 ##@ Docker Infrastructure
 
+.PHONY: docker-up
 docker-up: ## Start PostgreSQL, Redis, and Asynqmon containers for testing
 	@echo "$(BLUE)Starting Docker containers...$(NC)"
 	$(DOCKER_COMPOSE) up -d
@@ -119,40 +165,101 @@ docker-up: ## Start PostgreSQL, Redis, and Asynqmon containers for testing
 	@echo "$(YELLOW)Redis available at localhost:6379$(NC)"
 	@echo "$(YELLOW)Asynqmon UI available at $(ASYNQMON_URL)$(NC)"
 
+.PHONY: docker-down
 docker-down: ## Stop test infrastructure containers
 	@echo "$(BLUE)Stopping Docker containers...$(NC)"
 	$(DOCKER_COMPOSE) down
 	@echo "$(GREEN)Containers stopped successfully$(NC)"
 
+.PHONY: docker-ps
 docker-ps: ## Show running containers
 	@echo "$(BLUE)Running containers:$(NC)"
 	$(DOCKER_COMPOSE) ps
 
+.PHONY: docker-logs
 docker-logs: ## Show logs from all containers
 	@echo "$(BLUE)Container logs:$(NC)"
 	$(DOCKER_COMPOSE) logs -f
 
+.PHONY: asynqmon
 asynqmon: ## Open Asynqmon UI in browser
 	@echo "$(BLUE)Opening Asynqmon UI...$(NC)"
 	@command -v open > /dev/null && open $(ASYNQMON_URL) || \
 		(command -v xdg-open > /dev/null && xdg-open $(ASYNQMON_URL)) || \
 		echo "$(YELLOW)Please open $(ASYNQMON_URL) in your browser$(NC)"
 
-##@ Utilities
+##@ Documentation
 
-clean: docker-down ## Clean up test artifacts and containers
-	@echo "$(BLUE)Cleaning up...$(NC)"
-	rm -rf bin/
-	rm -rf docker-examples/postgres_14/data/
-	$(GO) clean -testcache
-	@echo "$(GREEN)Cleanup complete$(NC)"
-
-godoc: ## Start Go documentation server
-	@echo "$(BLUE)Starting Go documentation server at http://localhost:6060$(NC)"
-	@which godoc > /dev/null || (echo "$(YELLOW)Installing godoc...$(NC)" && \
-		go install golang.org/x/tools/cmd/godoc@latest)
+.PHONY: docs
+docs: ## Serve documentation locally at http://localhost:6060
+	@echo "$(BLUE)Starting documentation server...$(NC)"
+	@echo "$(GREEN)Visit: http://localhost:6060/pkg/$(MODULE)/$(NC)"
+	@which godoc > /dev/null || (echo "$(YELLOW)Installing godoc...$(NC)" && go install golang.org/x/tools/cmd/godoc@latest)
 	godoc -http=:6060
 
+##@ Release
+
+.PHONY: release-check
+release-check: ## Check if ready for release
+	@echo "$(BLUE)Checking release readiness...$(NC)"
+	@test -f CHANGELOG.md || (echo "$(RED)❌ CHANGELOG.md not found$(NC)"; exit 1)
+	@test -f LICENSE || (echo "$(RED)❌ LICENSE not found$(NC)"; exit 1)
+	@test -f CONTRIBUTING.md || (echo "$(YELLOW)⚠️  CONTRIBUTING.md recommended$(NC)")
+	@$(MAKE) check
+	@echo "$(GREEN)✅ Release checks passed$(NC)"
+
+.PHONY: tag
+tag: ## Create git tag (Usage: make tag VERSION=v1.0.0)
+	@test -n "$(VERSION)" || (echo "$(RED)VERSION required. Usage: make tag VERSION=v1.0.0$(NC)"; exit 1)
+	@git tag -a $(VERSION) -m "Release $(VERSION)"
+	@echo "$(GREEN)✅ Created tag $(VERSION)$(NC)"
+	@echo "$(YELLOW)Push with: git push origin $(VERSION)$(NC)"
+
+##@ Cleanup
+
+.PHONY: clean
+clean: ## Clean build artifacts and caches
+	@echo "$(BLUE)Cleaning up...$(NC)"
+	rm -rf bin/
+	rm -f $(COVERAGE_FILE) $(COVERAGE_HTML)
+	$(GO) clean -cache -testcache
+	@echo "$(GREEN)Cleanup complete$(NC)"
+
+.PHONY: clean-all
+clean-all: clean docker-down ## Deep clean including Docker and mod cache
+	@echo "$(BLUE)Deep cleaning...$(NC)"
+	rm -rf docker-examples/postgres_14/data/
+	$(GO) clean -modcache
+	@echo "$(GREEN)Deep cleanup complete$(NC)"
+
+##@ Tools
+
+.PHONY: install-tools
+install-tools: ## Install development tools
+	@echo "$(BLUE)Installing development tools...$(NC)"
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install golang.org/x/tools/cmd/godoc@latest
+	@echo "$(GREEN)✅ Tools installed$(NC)"
+
+##@ Dependencies
+
+.PHONY: deps-update
+deps-update: ## Update all dependencies
+	@echo "$(BLUE)Updating dependencies...$(NC)"
+	$(GO) get -u ./...
+	$(GO) mod tidy
+	@echo "$(GREEN)Dependencies updated$(NC)"
+
+.PHONY: deps-check
+deps-check: ## Check for outdated dependencies
+	@echo "$(BLUE)Checking for outdated dependencies...$(NC)"
+	$(GO) list -u -m all
+
+##@ Utilities
+
+.PHONY: info
 info: ## Show project information
 	@echo "$(BLUE)Project Information:$(NC)"
 	@echo "  Name:        $(PROJECT_NAME)"
@@ -161,6 +268,7 @@ info: ## Show project information
 	@echo "  Git Branch:  $$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'N/A')"
 	@echo "  Git Commit:  $$(git rev-parse --short HEAD 2>/dev/null || echo 'N/A')"
 
+.PHONY: version
 version: ## Show version information
 	@echo "$(BLUE)Version Information:$(NC)"
 	@echo "  Go:          $$(go version | awk '{print $$3}')"
@@ -168,26 +276,12 @@ version: ## Show version information
 	@echo "  Git Tag:     $$(git describe --tags --abbrev=0 2>/dev/null || echo 'No tags')"
 	@echo "  Build Time:  $$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
-##@ Release
+##@ Pre-commit/push Hooks
 
-pre-release: validate test-all ## Prepare for release
-	@echo "$(BLUE)Preparing for release...$(NC)"
-	@echo "$(GREEN)Pre-release checks passed$(NC)"
-	@echo "$(YELLOW)Don't forget to update version tags!$(NC)"
+.PHONY: pre-commit
+pre-commit: fmt vet lint test-short ## Quick pre-commit checks
+	@echo "$(GREEN)✅ Pre-commit checks passed$(NC)"
 
-release: pre-release ## Create a new release (interactive)
-	@echo "$(BLUE)Creating release...$(NC)"
-	@read -p "Enter version tag (e.g., v1.0.0): " VERSION; \
-	git tag -a $$VERSION -m "Release $$VERSION"; \
-	echo "$(GREEN)Created tag $$VERSION$(NC)"; \
-	echo "$(YELLOW)Push with: git push origin $$VERSION$(NC)"
-
-release-ci: pre-release ## Create release for CI (non-interactive)
-	@echo "$(BLUE)Creating CI release...$(NC)"
-	@if [ -z "$(VERSION)" ]; then \
-		echo "$(RED)ERROR: VERSION variable is required$(NC)"; \
-		exit 1; \
-	fi
-	git tag -a $(VERSION) -m "Release $(VERSION)"
-	git push origin $(VERSION)
-	@echo "$(GREEN)Release $(VERSION) created and pushed$(NC)"
+.PHONY: pre-push
+pre-push: check test-coverage ## Pre-push checks
+	@echo "$(GREEN)✅ Pre-push checks passed$(NC)"
