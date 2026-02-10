@@ -1,0 +1,27 @@
+[
+  {
+    "orderId": "ORD-001",
+    "customer": "Alice",
+    "amount": 100
+  },
+  {
+    "orderId": "ORD-002",
+    "customer": "Bob",
+    "amount": 200
+  },
+  {
+    "orderId": "ORD-003",
+    "customer": "Charlie",
+    "amount": 150
+  },
+  {
+    "orderId": "ORD-004",
+    "customer": "Diana",
+    "amount": 300
+  },
+  {
+    "orderId": "ORD-005",
+    "customer": "Eve",
+    "amount": 250
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "Comment": "State Machine B - Order Processing Pipeline",
+  "Name": "State-Machine-B",
+  "StartAt": "ProcessOrder",
+  "States": {
+    "ProcessOrder": {
+      "Type": "Task",
+      "Resource": "process:order",
+      "Next": "ValidateOrder"
+    },
+    "ValidateOrder": {
+      "Type": "Task",
+      "Resource": "validate:order",
+      "End": true
+    }
+  }
+}

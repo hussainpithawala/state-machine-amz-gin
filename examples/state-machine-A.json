@@ -1,0 +1,12 @@
+{
+  "Comment": "State Machine A - Data Ingestion Pipeline",
+  "Name": "State-Machine-A",
+  "StartAt": "IngestData",
+  "States": {
+    "IngestData": {
+      "Type": "Task",
+      "Resource": "ingest:data",
+      "End": true
+    }
+  }
+}

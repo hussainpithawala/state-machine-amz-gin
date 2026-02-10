@@ -78,11 +78,11 @@ func ExecuteBatch(c *gin.Context) {
 		}
 
 		if req.Filter.StartTimeFrom != 0 {
-			filter.StartAfter = time.Unix(req.Filter.StartTimeTo, 0)
+			filter.StartAfter = time.Unix(req.Filter.StartTimeFrom, 0)
 		}
 
 		if req.Filter.StartTimeTo != 0 {
-			filter.StartBefore = time.Unix(req.Filter.StartTimeFrom, 0)
+			filter.StartBefore = time.Unix(req.Filter.StartTimeTo, 0)
 		}
 
 	}
