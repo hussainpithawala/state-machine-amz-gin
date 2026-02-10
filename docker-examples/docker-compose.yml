@@ -26,7 +26,7 @@ services:
     networks:
       - statemachine-gin-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -47,11 +47,24 @@ services:
     networks:
       - statemachine-gin-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
 
+  state-machine-amz-portal:
+    image: hussainp/state-machine-amz-portal:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL="postgresql://postgres:postgres@postgres_sm_gin:5432/statemachine_gin?sslmode=disable"
+      - STATE_MACHINE_SERVICE_URL=http://host.docker.internal:9090
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres_sm_gin:
+        condition: service_started
 networks:
   statemachine-gin-network:
     driver: bridge
