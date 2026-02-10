@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
+## [1.0.1] - 2026-02-10
+
+### Changed
+- Updated dependencies
+- Replaced Redis configuration for queue setup with asynq
+
 ## [1.0.0] - 2026-02-09
 
 ### Added
@@ -180,7 +186,8 @@ if execution.Status == "Running" { ... }
 
 ## Links
 
-[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/hussainpithawala/state-machine-amz-gin/releases/tag/v1.0.0
 
 ---

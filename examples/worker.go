@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hibiken/asynq"
 	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
@@ -45,10 +46,12 @@ func runStandaloneWorker() {
 
 	// Setup queue client (Redis)
 	queueConfig := &queue.Config{
-		RedisAddr:     "localhost:6379",
-		RedisPassword: "",
-		RedisDB:       0,
-		Concurrency:   10,
+		RedisClientOpt: &asynq.RedisClientOpt{
+			Addr:     "localhost:6379",
+			Password: "",
+			DB:       0,
+		},
+		Concurrency: 10,
 		Queues: map[string]int{
 			"critical": 6,
 			"default":  3,
