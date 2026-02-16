@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 )
 
@@ -69,4 +70,23 @@ func RegisterGlobalFunctions(baseExecutor *executor.BaseExecutor) *executor.Stat
 	})
 
 	return nil
+}
+
+func RegisterTransformerFunctions() *middleware.TransformerRegistry {
+	return &middleware.TransformerRegistry{
+		"csv2Json": func(output interface{}) (interface{}, error) {
+			fmt.Println("[Transformer] Transforming input from Execution A...")
+			data := output.(map[string]interface{})
+
+			// Extract only specific fields and add metadata
+			transformed := map[string]interface{}{
+				"validatedData": data["validationResult"],
+				"source":        "execution-A-001",
+				"transformedAt": "2024-01-01T12:05:00Z",
+			}
+
+			fmt.Printf("[Transformer] Transformed: %v\n", transformed)
+			return transformed, nil
+		},
+	}
 }

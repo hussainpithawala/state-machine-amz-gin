@@ -103,8 +103,20 @@ func ExecuteBatch(c *gin.Context) {
 		//Mode:              req.Mode, // "distributed", "concurrent", "sequential"
 	}
 
+	sourceStateName := req.Filter.SourceStateName
+	sourceInputTransformer := req.Filter.SourceInputTransformer
+
+	transformerRegistry, _ := middleware.GetTransformerRegistry(c)
+	transformerFunc := transformerRegistry[sourceInputTransformer]
+
+	// Build execution options
+	var execOpts []statemachine.ExecutionOption
+	if transformerFunc != nil {
+		execOpts = append(execOpts, statemachine.WithInputTransformer(transformerFunc))
+	}
+
 	// Execute batch
-	results, err := sm.ExecuteBatch(c.Request.Context(), filter, "", batchOpts)
+	results, err := sm.ExecuteBatch(c.Request.Context(), filter, sourceStateName, batchOpts, execOpts...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "Batch execution failed",

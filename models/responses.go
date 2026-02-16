@@ -123,3 +123,7 @@ type ListStateMachinesResponse struct {
 	StateMachines []*StateMachineResponse `json:"stateMachines"`
 	Total         int                     `json:"total"`
 }
+
+type ListTransformersResponse struct {
+	Transformers []string `json:"transformers"`
+}

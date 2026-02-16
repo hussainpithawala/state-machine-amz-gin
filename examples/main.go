@@ -97,11 +97,12 @@ func main() {
 
 	// Setup Gin server with state machine middleware
 	serverConfig := &middleware.Config{
-		RepositoryManager: repoManager,
-		QueueClient:       queueClient,
-		BaseExecutor:      baseExecutor,
-		WorkerConfig:      workerConfig,
-		BasePath:          "/state-machines/api/v1",
+		RepositoryManager:   repoManager,
+		QueueClient:         queueClient,
+		BaseExecutor:        baseExecutor,
+		WorkerConfig:        workerConfig,
+		BasePath:            "/state-machines/api/v1",
+		TransformerRegistry: RegisterTransformerFunctions(),
 	}
 
 	// Create and start background worker if configured

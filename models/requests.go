@@ -43,24 +43,26 @@ type ResumeByCorrelationRequest struct {
 
 // ExecuteBatchRequest represents a request to execute a batch of executions
 type ExecuteBatchRequest struct {
-	Filter            *ExecutionFilterRequest `json:"filter"`
-	NamePrefix        string                  `json:"namePrefix"`
-	Concurrency       int                     `json:"concurrency"`
-	Mode              string                  `json:"mode"` // "distributed", "concurrent", "sequential"
-	StopOnError       bool                    `json:"stopOnError"`
-	ExecutionNameList []string                `json:"executionNameList"` // Explicit list of execution names
+	Filter            *BatchExecutionFilterRequest `json:"filter"`
+	NamePrefix        string                       `json:"namePrefix"`
+	Concurrency       int                          `json:"concurrency"`
+	Mode              string                       `json:"mode"` // "distributed", "concurrent", "sequential"
+	StopOnError       bool                         `json:"stopOnError"`
+	ExecutionNameList []string                     `json:"executionNameList"` // Explicit list of execution names
 }
 
-// ExecutionFilterRequest represents filter parameters for listing executions
-type ExecutionFilterRequest struct {
-	SourceStateMachineId string   `json:"sourceStateMachineId"`
-	Status               string   `json:"status"`
-	StartTimeFrom        int64    `json:"startTimeFrom"`
-	StartTimeTo          int64    `json:"startTimeTo"`
-	NamePattern          string   `json:"namePattern"`
-	Limit                int      `json:"limit"`
-	Offset               int      `json:"offset"`
-	States               []string `json:"states"`
+// BatchExecutionFilterRequest represents filter parameters for listing executions
+type BatchExecutionFilterRequest struct {
+	SourceStateMachineId   string   `json:"sourceStateMachineId"`
+	SourceStateName        string   `json:"sourceStateName,omitempty"`        // Optional: specific state's output to use from source execution
+	SourceInputTransformer string   `json:"sourceInputTransformer,omitempty"` // Optional: JSONPath or transformation expression to apply
+	Status                 string   `json:"status"`
+	StartTimeFrom          int64    `json:"startTimeFrom"`
+	StartTimeTo            int64    `json:"startTimeTo"`
+	NamePattern            string   `json:"namePattern"`
+	Limit                  int      `json:"limit"`
+	Offset                 int      `json:"offset"`
+	States                 []string `json:"states"`
 }
 
 // EnqueueExecutionRequest represents a request to enqueue an execution task

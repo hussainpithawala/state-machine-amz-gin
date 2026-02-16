@@ -59,3 +59,5 @@ require (
 	gorm.io/gorm v1.31.1 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/hussainpithawala/state-machine-amz-go => ../state-machine-amz-go

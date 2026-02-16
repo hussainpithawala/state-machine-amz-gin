@@ -63,6 +63,25 @@ func StartExecution(c *gin.Context) {
 
 	ctx := context.WithValue(c.Request.Context(), types.ExecutionContextKey, executor.NewExecutionContextAdapter(baseExecutor))
 
+	// Build execution options
+	var execOpts []statemachine.ExecutionOption
+
+	sourceInputTransformer := req.SourceInputTransformer
+
+	if sourceInputTransformer != "" {
+		transformerRegistry, ok := middleware.GetTransformerRegistry(c)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Error:   "Failed to get transformer function from registry",
+				Message: "Failed to get transformer function registry",
+				Code:    http.StatusInternalServerError,
+			})
+			return
+		}
+		transformerFunc := transformerRegistry[sourceInputTransformer]
+		execOpts = append(execOpts, statemachine.WithInputTransformer(transformerFunc))
+	}
+
 	if req.Input != nil {
 		exec, err := sm.Execute(
 			ctx,
@@ -86,58 +105,35 @@ func StartExecution(c *gin.Context) {
 			StartTime:      exec.StartTime,
 			Input:          exec.Input,
 		})
-	}
-
-	if req.SourceExecutionID != "" {
-		if req.SourceStateName != "" {
-			fmt.Printf("executing from source-execution-id %s and source-state-name %s\n", req.SourceExecutionID, req.SourceStateName)
-			executionResult, err := sm.Execute(ctx, nil,
-				statemachine.WithExecutionName(req.Name),
-				statemachine.WithSourceExecution(req.SourceExecutionID, req.SourceStateName),
-			)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-					Error:   "Failed to execute using source execution",
-					Message: err.Error(),
-					Code:    http.StatusInternalServerError,
-				})
-				return
+	} else {
+		if req.SourceExecutionID != "" {
+			if req.SourceStateName != "" {
+				execOpts = append(execOpts, statemachine.WithSourceExecution(req.SourceExecutionID, req.SourceStateName))
+			} else {
+				execOpts = append(execOpts, statemachine.WithSourceExecution(req.SourceExecutionID))
 			}
-
-			c.JSON(http.StatusAccepted, models.StartExecutionResponse{
-				ExecutionID:    executionResult.ID,
-				StateMachineID: executionResult.StateMachineID,
-				Name:           executionResult.Name,
-				Status:         executionResult.Status,
-				StartTime:      executionResult.StartTime,
-				Input:          executionResult.Input,
-			})
-		} else {
-			fmt.Printf("executing from source-execution-id %s\n", req.SourceExecutionID)
-			executionResult, err := sm.Execute(ctx, nil,
-				statemachine.WithExecutionName(req.Name),
-				statemachine.WithSourceExecution(req.SourceExecutionID),
-			)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-					Error:   "Failed to execute using source execution",
-					Message: err.Error(),
-					Code:    http.StatusInternalServerError,
-				})
-				return
-			}
-
-			c.JSON(http.StatusAccepted, models.StartExecutionResponse{
-				ExecutionID:    executionResult.ID,
-				StateMachineID: executionResult.StateMachineID,
-				Name:           executionResult.Name,
-				Status:         executionResult.Status,
-				StartTime:      executionResult.StartTime,
-				Input:          executionResult.Input,
-			})
 		}
-	}
 
+		fmt.Printf("executing from source-execution-id %s\n", req.SourceExecutionID)
+		executionResult, err := sm.Execute(ctx, req.Input, execOpts...)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Error:   "Failed to execute using source execution",
+				Message: err.Error(),
+				Code:    http.StatusInternalServerError,
+			})
+			return
+		}
+
+		c.JSON(http.StatusAccepted, models.StartExecutionResponse{
+			ExecutionID:    executionResult.ID,
+			StateMachineID: executionResult.StateMachineID,
+			Name:           executionResult.Name,
+			Status:         executionResult.Status,
+			StartTime:      executionResult.StartTime,
+			Input:          executionResult.Input,
+		})
+	}
 }
 
 // GetExecution retrieves an execution by ID

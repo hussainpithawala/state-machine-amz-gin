@@ -38,6 +38,7 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 		// Execution Management
 		api.POST("/state-machines/:stateMachineId/executions", handlers.StartExecution)
 		api.GET("/state-machines/:stateMachineId/executions", handlers.ListExecutions)
+		api.GET("/transformers", handlers.ListTransformers)
 		api.GET("/state-machines/:stateMachineId/executions/count", handlers.CountExecutions)
 		api.GET("/executions/:executionId", handlers.GetExecution)
 		api.DELETE("/executions/:executionId", handlers.StopExecution)

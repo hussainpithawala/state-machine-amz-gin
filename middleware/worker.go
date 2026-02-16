@@ -11,6 +11,7 @@ import (
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/handler"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/types"
 )
 
 // WorkerConfig holds configuration for the background worker
@@ -69,6 +70,8 @@ func NewWorker(config *WorkerConfig) (*Worker, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	ctx = context.WithValue(ctx, types.ExecutionContextKey, execAdapter)
 
 	return &Worker{
 		queueWorker: queueWorker,

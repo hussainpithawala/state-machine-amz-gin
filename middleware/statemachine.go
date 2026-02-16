@@ -9,11 +9,12 @@ import (
 
 // Config holds the configuration for the state machine middleware
 type Config struct {
-	RepositoryManager *repository.Manager
-	QueueClient       *queue.Client
-	BaseExecutor      *executor.BaseExecutor
-	WorkerConfig      *WorkerConfig // Optional: Configuration for background worker
-	BasePath          string        // e.g., "/api/v1"
+	RepositoryManager   *repository.Manager
+	QueueClient         *queue.Client
+	BaseExecutor        *executor.BaseExecutor
+	WorkerConfig        *WorkerConfig        // Optional: Configuration for background worker
+	BasePath            string               // e.g., "/api/v1"
+	TransformerRegistry *TransformerRegistry // Optional: Registry of custom transformers
 }
 
 // StateMachineMiddleware injects repository manager, queue client, and base executor into gin context
@@ -27,6 +28,15 @@ func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 		}
 		if config.BaseExecutor != nil {
 			c.Set("baseExecutor", config.BaseExecutor)
+		}
+		if config.WorkerConfig != nil {
+			c.Set("workerConfig", config.WorkerConfig)
+		}
+		if config.BasePath != "" {
+			c.Set("basePath", config.BasePath)
+		}
+		if config.TransformerRegistry != nil {
+			c.Set("transformerRegistry", config.TransformerRegistry)
 		}
 		c.Next()
 	}
@@ -60,6 +70,15 @@ func GetBaseExecutor(c *gin.Context) (*executor.BaseExecutor, bool) {
 	}
 	baseExecutor, ok := exec.(*executor.BaseExecutor)
 	return baseExecutor, ok
+}
+
+func GetTransformerRegistry(c *gin.Context) (TransformerRegistry, bool) {
+	registry, exists := c.Get("transformerRegistry")
+	if !exists {
+		return nil, false
+	}
+	reg, ok := registry.(*TransformerRegistry)
+	return *reg, ok
 }
 
 // ErrorHandler is a middleware that handles panics and returns proper error responses
