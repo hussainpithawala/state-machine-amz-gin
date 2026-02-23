@@ -84,7 +84,6 @@ func ExecuteBatch(c *gin.Context) {
 		if req.Filter.StartTimeTo != 0 {
 			sourceExecutionFilter.StartBefore = time.Unix(req.Filter.StartTimeTo, 0)
 		}
-
 	}
 
 	// Default values

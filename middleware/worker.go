@@ -123,7 +123,7 @@ func (w *Worker) StartWithGracefulShutdown() {
 
 	// Start worker
 	if err := w.Start(); err != nil {
-		log.Fatalf("Failed to start worker: %v", err)
+		log.Printf("Failed to start worker: %v", err)
 	}
 
 	// Wait for shutdown signal in background
