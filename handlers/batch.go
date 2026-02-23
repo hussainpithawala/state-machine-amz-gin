@@ -54,35 +54,35 @@ func ExecuteBatch(c *gin.Context) {
 		sm.SetQueueClient(queueClient)
 	}
 
-	// Build execution filter from request
-	var filter *repository.ExecutionFilter
+	// Build execution sourceExecutionFilter from request
+	var sourceExecutionFilter *repository.ExecutionFilter
 	if req.Filter != nil {
-		filter = &repository.ExecutionFilter{}
+		sourceExecutionFilter = &repository.ExecutionFilter{}
 
 		if req.Filter.SourceStateMachineId != "" {
-			filter.StateMachineID = req.Filter.SourceStateMachineId
+			sourceExecutionFilter.StateMachineID = req.Filter.SourceStateMachineId
 		} else {
-			filter.StateMachineID = stateMachineID
+			sourceExecutionFilter.StateMachineID = stateMachineID
 		}
 
 		if req.Filter.Status != "" {
-			filter.Status = req.Filter.Status
+			sourceExecutionFilter.Status = req.Filter.Status
 		}
 
 		if req.Filter.Limit != 0 {
-			filter.Limit = req.Filter.Limit
+			sourceExecutionFilter.Limit = req.Filter.Limit
 		}
 
 		if req.Filter.Offset != 0 {
-			filter.Offset = req.Filter.Offset
+			sourceExecutionFilter.Offset = req.Filter.Offset
 		}
 
 		if req.Filter.StartTimeFrom != 0 {
-			filter.StartAfter = time.Unix(req.Filter.StartTimeFrom, 0)
+			sourceExecutionFilter.StartAfter = time.Unix(req.Filter.StartTimeFrom, 0)
 		}
 
 		if req.Filter.StartTimeTo != 0 {
-			filter.StartBefore = time.Unix(req.Filter.StartTimeTo, 0)
+			sourceExecutionFilter.StartBefore = time.Unix(req.Filter.StartTimeTo, 0)
 		}
 
 	}
@@ -105,18 +105,26 @@ func ExecuteBatch(c *gin.Context) {
 
 	sourceStateName := req.Filter.SourceStateName
 	sourceInputTransformer := req.Filter.SourceInputTransformer
+	applyUnique := req.Filter.ApplyUnique
 
 	transformerRegistry, _ := middleware.GetTransformerRegistry(c)
 	transformerFunc := transformerRegistry[sourceInputTransformer]
 
 	// Build execution options
 	var execOpts []statemachine.ExecutionOption
+
+	if applyUnique {
+		execOpts = append(execOpts, statemachine.WithUniqueness(applyUnique))
+	}
+
 	if transformerFunc != nil {
+		// add both input transformer name and function to execution options
+		execOpts = append(execOpts, statemachine.WithInputTransformerName(sourceInputTransformer))
 		execOpts = append(execOpts, statemachine.WithInputTransformer(transformerFunc))
 	}
 
 	// Execute batch
-	results, err := sm.ExecuteBatch(c.Request.Context(), filter, sourceStateName, batchOpts, execOpts...)
+	results, err := sm.ExecuteBatch(c.Request.Context(), sourceExecutionFilter, sourceStateName, batchOpts, execOpts...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "Batch execution failed",
