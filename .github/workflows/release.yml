@@ -42,12 +42,16 @@ jobs:
     
     - name: Run tests
       run: go test -v -race ./...
-    
-    - name: Run linter
-      uses: golangci/golangci-lint-action@v3
-      with:
-        version: latest
-        args: --timeout=5m
+
+    - name: Install golangci-lint v2.4.0
+      run: |
+        # Install specific version directly
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b /usr/local/bin latest
+        golangci-lint --version
+
+    - name: Run golangci-lint
+      run: |
+        golangci-lint run --timeout=5m --config=.golangci.yml
 
   release:
     name: Create Release
