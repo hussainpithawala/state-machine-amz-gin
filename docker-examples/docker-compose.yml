@@ -56,21 +56,21 @@ services:
       timeout: 5s
       retries: 3
 
-  state-machine-amz-portal:
-    image: hussainp/state-machine-amz-portal:v1.0.1
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres_sm_gin:5432/statemachine_gin?sslmode=disable
-      - STATE_MACHINE_SERVICE_URL=http://host.docker.internal:9090
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres_sm_gin:
-        condition: service_healthy
-    networks:
-      - statemachine-gin-network
+#  state-machine-amz-portal:
+#    image: hussainp/state-machine-amz-portal:v1.0.1
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - DATABASE_URL=postgresql://postgres:postgres@postgres_sm_gin:5432/statemachine_gin?sslmode=disable
+#      - STATE_MACHINE_SERVICE_URL=http://host.docker.internal:9090
+#    restart: unless-stopped
+#    depends_on:
+#      redis:
+#        condition: service_healthy
+#      postgres_sm_gin:
+#        condition: service_healthy
+#    networks:
+#      - statemachine-gin-network
 networks:
   statemachine-gin-network:
     driver: bridge

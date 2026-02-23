@@ -30,13 +30,18 @@ func main() {
 
 	repoManager, err := repository.NewPersistenceManager(repoConfig)
 	if err != nil {
-		log.Fatalf("Failed to create repository manager: %v", err)
+		log.Printf("Failed to create repository manager: %v", err)
 	}
-	defer repoManager.Close()
+	defer func(repoManager *repository.Manager) {
+		err := repoManager.Close()
+		if err != nil {
+			log.Printf("Warning: Failed to close repository manager: %v", err)
+		}
+	}(repoManager)
 
 	// Initialize database schema
 	if err := repoManager.Initialize(ctx); err != nil {
-		log.Fatalf("Failed to initialize repository: %v", err)
+		log.Printf("Failed to initialize repository: %v", err)
 	}
 
 	log.Println("Repository manager initialized successfully")
@@ -62,7 +67,7 @@ func main() {
 
 	allStateMachines, err := repoManager.ListStateMachines(ctx, nil)
 	if err != nil {
-		log.Fatalf("Failed to list state machines: %v", err)
+		log.Printf("Failed to list state machines: %v", err)
 	}
 
 	for i := 0; i < len(allStateMachines); i++ {
@@ -75,7 +80,12 @@ func main() {
 		log.Printf("Warning: Failed to create queue client: %v (continuing without queue support)", err)
 		queueClient = nil
 	} else {
-		defer queueClient.Close()
+		defer func(queueClient *queue.Client) {
+			err := queueClient.Close()
+			if err != nil {
+				log.Printf("Warning: Failed to close queue client: %v", err)
+			}
+		}(queueClient)
 		log.Println("Queue client initialized successfully")
 	}
 
@@ -108,12 +118,12 @@ func main() {
 	// Create and start background worker if configured
 	worker, err := middleware.NewWorker(workerConfig)
 	if err != nil {
-		log.Fatalf("Failed to create worker: %v", err)
+		log.Printf("Failed to create worker: %v", err)
 	}
 	if worker != nil {
 		defer worker.Stop()
 		if err := worker.Start(); err != nil {
-			log.Fatalf("Failed to start worker: %v", err)
+			log.Printf("Failed to start worker: %v", err)
 		}
 	}
 
@@ -133,6 +143,6 @@ func main() {
 	log.Printf("  - GET    http://localhost%s/api/v1/health", addr)
 
 	if err := router.Run(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		log.Printf("Failed to start server: %v", err)
 	}
 }

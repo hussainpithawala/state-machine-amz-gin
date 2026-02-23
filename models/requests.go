@@ -56,7 +56,8 @@ type BatchExecutionFilterRequest struct {
 	SourceStateMachineId   string   `json:"sourceStateMachineId"`
 	SourceStateName        string   `json:"sourceStateName,omitempty"`        // Optional: specific state's output to use from source execution
 	SourceInputTransformer string   `json:"sourceInputTransformer,omitempty"` // Optional: JSONPath or transformation expression to apply
-	Status                 string   `json:"status"`
+	ApplyUnique            bool     `json:"applyUnique,omitempty"`
+	Status                 string   `json:"status,omitempty"`
 	StartTimeFrom          int64    `json:"startTimeFrom"`
 	StartTimeTo            int64    `json:"startTimeTo"`
 	NamePattern            string   `json:"namePattern"`

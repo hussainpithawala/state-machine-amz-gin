@@ -56,37 +56,37 @@ func HealthCheck(c *gin.Context) {
 }
 
 // GetQueueStats retrieves queue statistics
-//func GetQueueStats(c *gin.Context) {
-//	queueClient, ok := middleware.GetQueueClient(c)
-//	if !ok {
-//		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-//			Error:   "Queue client not configured",
-//			Message: "Distributed queue is not available",
-//			Code:    http.StatusInternalServerError,
-//		})
-//		return
-//	}
+// func GetQueueStats(c *gin.Context) {
+// 	queueClient, ok := middleware.GetQueueClient(c)
+// 	if !ok {
+// 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+// 			Error:   "Queue client not configured",
+// 			Message: "Distributed queue is not available",
+// 			Code:    http.StatusInternalServerError,
+// 		})
+// 		return
+// 	}
 //
-//	// Get queue statistics from Redis
-//	stats, err := queueClient.GetStats()
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-//			Error:   "Failed to retrieve queue stats",
-//			Message: err.Error(),
-//			Code:    http.StatusInternalServerError,
-//		})
-//		return
-//	}
+// 	// Get queue statistics from Redis
+// 	stats, err := queueClient.GetStats()
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+// 			Error:   "Failed to retrieve queue stats",
+// 			Message: err.Error(),
+// 			Code:    http.StatusInternalServerError,
+// 		})
+// 		return
+// 	}
 //
-//	// Convert to response format
-//	queueStats := make(map[string]models.QueueStats)
-//	for queueName, stat := range stats {
-//		queueStats[queueName] = models.QueueStats{
-//			Pending: stat.Pending,
-//			Active:  stat.Active,
-//			Failed:  stat.Failed,
-//		}
-//	}
+// 	// Convert to response format
+// 	queueStats := make(map[string]models.QueueStats)
+// 	for queueName, stat := range stats {
+// 		queueStats[queueName] = models.QueueStats{
+// 			Pending: stat.Pending,
+// 			Active:  stat.Active,
+// 			Failed:  stat.Failed,
+// 		}
+// 	}
 //
 //	c.JSON(http.StatusOK, models.QueueStatsResponse{
 //		Queues: queueStats,

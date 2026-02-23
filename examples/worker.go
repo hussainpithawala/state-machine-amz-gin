@@ -17,6 +17,7 @@ import (
 
 // This example demonstrates how to run a standalone worker
 // that consumes execution tasks from Redis queue
+// nolint:unused
 func runStandaloneWorker() {
 	ctx := context.Background()
 
@@ -33,13 +34,18 @@ func runStandaloneWorker() {
 
 	repoManager, err := repository.NewPersistenceManager(repoConfig)
 	if err != nil {
-		log.Fatalf("Failed to create repository manager: %v", err)
+		log.Printf("Failed to create repository manager: %v", err)
 	}
-	defer repoManager.Close()
+	defer func(repoManager *repository.Manager) {
+		err := repoManager.Close()
+		if err != nil {
+			log.Printf("Warning: Failed to close repository manager: %v", err)
+		}
+	}(repoManager)
 
 	// Initialize database schema
 	if err := repoManager.Initialize(ctx); err != nil {
-		log.Fatalf("Failed to initialize repository: %v", err)
+		log.Printf("Failed to initialize repository: %v", err)
 	}
 
 	log.Println("Repository manager initialized successfully")
@@ -65,7 +71,7 @@ func runStandaloneWorker() {
 
 	allStateMachines, err := repoManager.ListStateMachines(ctx, nil)
 	if err != nil {
-		log.Fatalf("Failed to list state machines: %v", err)
+		log.Printf("Failed to list state machines: %v", err)
 	}
 
 	for i := 0; i < len(allStateMachines); i++ {
@@ -87,11 +93,11 @@ func runStandaloneWorker() {
 	// Create worker
 	worker, err := middleware.NewWorker(workerConfig)
 	if err != nil {
-		log.Fatalf("Failed to create worker: %v", err)
+		log.Printf("Failed to create worker: %v", err)
 	}
 
 	if worker == nil {
-		log.Fatal("Worker is nil, cannot start")
+		log.Print("Worker is nil, cannot start")
 	}
 
 	// Setup graceful shutdown
@@ -100,7 +106,7 @@ func runStandaloneWorker() {
 
 	// Start worker
 	if err := worker.Start(); err != nil {
-		log.Fatalf("Failed to start worker: %v", err)
+		log.Printf("Failed to start worker: %v", err)
 	}
 
 	log.Println("Standalone worker is running. Press Ctrl+C to shutdown gracefully.")

@@ -30,6 +30,9 @@ NC := \033[0m
 
 ##@ Development
 
+# Get the golangci-lint binary path from the system
+LINT_BIN := $(shell command -v golangci-lint 2> /dev/null)
+
 .PHONY: install
 install: ## Install dependencies
 	@echo "$(BLUE)Installing dependencies...$(NC)"
@@ -82,11 +85,18 @@ vet: ## Run go vet
 	$(GOVET) ./...
 	@echo "$(GREEN)Vet passed$(NC)"
 
+install-lint:
+ifndef LINT_BIN
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b /usr/local/bin latest
+else
+	@golangci-lint version
+	@echo "golangci-lint is already installed."
+endif
+
 .PHONY: lint
-lint: ## Run golangci-lint
-	@echo "$(BLUE)Running golangci-lint...$(NC)"
-	$(GOLINT) run ./...
-	@echo "$(GREEN)Lint passed$(NC)"
+lint: install-lint ## Run linter
+	@echo "${GREEN}Running linter...${RESET}"
+	@golangci-lint run --timeout=5m --config=.golangci.yml
 
 .PHONY: lint-fix
 lint-fix: ## Run golangci-lint with auto-fix

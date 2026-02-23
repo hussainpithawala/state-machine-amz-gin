@@ -46,12 +46,12 @@ func main() {
 
     repoManager, err := repository.NewPersistenceManager(repoConfig)
     if err != nil {
-        log.Fatal(err)
+        log.Print(err)
     }
     defer repoManager.Close()
 
     if err := repoManager.Initialize(ctx); err != nil {
-        log.Fatal(err)
+        log.Print(err)
     }
 
     // Setup server
