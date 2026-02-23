@@ -472,7 +472,7 @@ What you expected to happen
 What actually happened
 
 ## Environment
-- Go version: 1.24.0
+- Go version: 1.25.7.0
 - OS: Ubuntu 22.04
 - Package version: v1.0.0
 
