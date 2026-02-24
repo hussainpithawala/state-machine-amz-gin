@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/hibiken/asynq v0.26.0
-	github.com/hussainpithawala/state-machine-amz-go v1.2.8
+	github.com/hussainpithawala/state-machine-amz-go v1.2.9
 )
 
 require (
