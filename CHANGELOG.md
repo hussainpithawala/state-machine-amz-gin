@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
+## [1.0.6] - 2026-02-24
+
+### Changed
+- Updated `state-machine-amz-go` to v1.2.10 with local replacement
+- Commented out repository and queue client close logic in examples
+
 ## [1.0.5] - 2026-02-24
 
 ### Changed
@@ -218,7 +224,8 @@ if execution.Status == "Running" { ... }
 
 ## Links
 
-[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.2...v1.0.3

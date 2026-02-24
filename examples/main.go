@@ -32,12 +32,12 @@ func main() {
 	if err != nil {
 		log.Printf("Failed to create repository manager: %v", err)
 	}
-	defer func(repoManager *repository.Manager) {
-		err := repoManager.Close()
-		if err != nil {
-			log.Printf("Warning: Failed to close repository manager: %v", err)
-		}
-	}(repoManager)
+	// defer func(repoManager *repository.Manager) {
+	// 	err := repoManager.Close()
+	// 	if err != nil {
+	// 		log.Printf("Warning: Failed to close repository manager: %v", err)
+	// 	}
+	// }(repoManager)
 
 	// Initialize database schema
 	if err := repoManager.Initialize(ctx); err != nil {
@@ -80,13 +80,13 @@ func main() {
 		log.Printf("Warning: Failed to create queue client: %v (continuing without queue support)", err)
 		queueClient = nil
 	} else {
-		defer func(queueClient *queue.Client) {
-			err := queueClient.Close()
-			if err != nil {
-				log.Printf("Warning: Failed to close queue client: %v", err)
-			}
-		}(queueClient)
-		log.Println("Queue client initialized successfully")
+		/*		defer func(queueClient *queue.Client) {
+					err := queueClient.Close()
+					if err != nil {
+						log.Printf("Warning: Failed to close queue client: %v", err)
+					}
+				}(queueClient)
+		*/log.Println("Queue client initialized successfully")
 	}
 
 	// Create BaseExecutor with StateRegistry for all task handlers
