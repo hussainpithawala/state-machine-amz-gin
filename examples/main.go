@@ -9,9 +9,12 @@ import (
 	"github.com/hibiken/asynq"
 	statemachinegin "github.com/hussainpithawala/state-machine-amz-gin"
 	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/batch"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/statemachine/persistent"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -94,6 +97,18 @@ func main() {
 	RegisterGlobalFunctions(baseExecutor)
 	log.Println("BaseExecutor initialized with task handler registry")
 
+	// Setup micro-batch bulkOrchestrator (optional)
+	var batchOrchestrator *batch.Orchestrator
+	var bulkOrchestrator *batch.Orchestrator
+	if queueClient != nil {
+		batchOrchestrator, bulkOrchestrator, err = createMiddlewareOrchestrator(ctx, repoManager, queueClient, queueConfig)
+		if err != nil {
+			log.Printf("Warning: Failed to create bulkOrchestrator: %v (continuing without bulkOrchestrator support)", err)
+		} else {
+			log.Println("BatchOrchestrator initialized successfully")
+		}
+	}
+
 	// Setup background worker configuration (optional)
 	var workerConfig *middleware.WorkerConfig
 	if queueClient != nil {
@@ -101,6 +116,8 @@ func main() {
 			QueueConfig:       queueConfig,
 			RepositoryManager: repoManager,
 			BaseExecutor:      baseExecutor,
+			BatchOrchestrator: batchOrchestrator,
+			BulkOrchestrator:  bulkOrchestrator,
 			EnableWorker:      true, // Set to true to enable background worker
 		}
 	}
@@ -110,6 +127,7 @@ func main() {
 		RepositoryManager:   repoManager,
 		QueueClient:         queueClient,
 		BaseExecutor:        baseExecutor,
+		Orchestrator:        bulkOrchestrator,
 		WorkerConfig:        workerConfig,
 		BasePath:            "/state-machines/api/v1",
 		TransformerRegistry: RegisterTransformerFunctions(),
@@ -145,4 +163,58 @@ func main() {
 	if err := router.Run(addr); err != nil {
 		log.Printf("Failed to start server: %v", err)
 	}
+}
+
+func createMiddlewareOrchestrator(
+	ctx context.Context,
+	repoManager *repository.Manager,
+	queueClient *queue.Client,
+	queueConfig *queue.Config,
+) (batchOrchestrator *batch.Orchestrator, bulkOrchestrator *batch.Orchestrator, orchError error) {
+	if queueConfig == nil || queueConfig.RedisClientOpt == nil {
+		return nil, nil, fmt.Errorf("queue redis configuration is required for batchOrchestrator")
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     queueConfig.RedisClientOpt.Addr,
+		Password: queueConfig.RedisClientOpt.Password,
+		DB:       queueConfig.RedisClientOpt.DB,
+	})
+
+	if err := redisClient.Ping(ctx).Err(); err != nil {
+		return nil, nil, fmt.Errorf("redis ping failed: %w", err)
+	}
+
+	parentSM, err := persistent.New(batch.OrchestratorDefinitionJSON(), true, batch.OrchestratorStateMachineID, repoManager)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create batchOrchestrator parent state machine: %w", err)
+	}
+	parentSM.SetQueueClient(queueClient)
+
+	smFactory := func(ctx context.Context, smID string, manager *repository.Manager) (batch.StateMachine, error) {
+		return persistent.NewFromDefnId(ctx, smID, manager)
+	}
+
+	smCreator := func(def []byte, isJSON bool, smID string, manager *repository.Manager) (batch.StateMachine, error) {
+		return persistent.New(def, isJSON, smID, manager)
+	}
+
+	batchOrchestrator, err = batch.NewOrchestrator(ctx, redisClient, parentSM, smFactory, smCreator)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create batchOrchestrator: %w", err)
+	}
+
+	if err := batchOrchestrator.EnsureDefinition(ctx, batch.OrchestratorDefinitionJSON(), batch.OrchestratorStateMachineID); err != nil {
+		return nil, nil, fmt.Errorf("failed to register batchOrchestrator definition: %w", err)
+	}
+
+	bulkOrchestrator, err = batch.NewOrchestrator(ctx, redisClient, parentSM, smFactory, smCreator)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create bulkOrchestrator: %w", err)
+	}
+	if err := bulkOrchestrator.EnsureDefinition(ctx, batch.OrchestratorDefinitionJSON(), batch.BulkOrchestratorStateMachineID); err != nil {
+		return nil, nil, fmt.Errorf("failed to register bulkOrchestrator definition: %w", err)
+	}
+
+	return batchOrchestrator, bulkOrchestrator, nil
 }

@@ -49,6 +49,8 @@ type ExecuteBatchRequest struct {
 	Mode              string                       `json:"mode"` // "distributed", "concurrent", "sequential"
 	StopOnError       bool                         `json:"stopOnError"`
 	ExecutionNameList []string                     `json:"executionNameList"` // Explicit list of execution names
+	DoMicroBatch      bool                         `json:"doMicroBatch"`
+	MicroBatchSize    int                          `json:"microBatchSize"`
 }
 
 // BatchExecutionFilterRequest represents filter parameters for listing executions
@@ -74,4 +76,35 @@ type EnqueueExecutionRequest struct {
 	Queue             string      `json:"queue"`
 	SourceExecutionID string      `json:"sourceExecutionId"`
 	SourceStateName   string      `json:"sourceStateName"`
+}
+
+// ExecuteBulkRequest represents a request to execute a bulk operation with orchestration
+type ExecuteBulkRequest struct {
+	Filter            *BulkExecutionFilterRequest `json:"filter"`
+	NamePrefix        string                      `json:"namePrefix"`
+	Concurrency       int                         `json:"concurrency"`
+	Mode              string                      `json:"mode"` // "distributed", "concurrent", "sequential"
+	StopOnError       bool                        `json:"stopOnError"`
+	ExecutionNameList []string                    `json:"executionNameList"` // Explicit list of execution names
+	DoMicroBatch      bool                        `json:"doMicroBatch"`
+	MicroBatchSize    int                         `json:"microBatchSize"`
+	OrchestratorID    string                      `json:"orchestratorId"` // Optional: custom orchestrator ID
+	PauseThreshold    float64                     `json:"pauseThreshold"` // Optional: failure rate threshold for auto-pause (0.0-1.0)
+	ResumeStrategy    string                      `json:"resumeStrategy"` // Optional: "manual", "automatic", "timeout"
+	TimeoutSeconds    int                         `json:"timeoutSeconds"` // Optional: timeout for automatic resume
+}
+
+// BulkExecutionFilterRequest represents filter parameters for bulk execution
+type BulkExecutionFilterRequest struct {
+	SourceStateMachineId   string   `json:"sourceStateMachineId"`
+	SourceStateName        string   `json:"sourceStateName,omitempty"`
+	SourceInputTransformer string   `json:"sourceInputTransformer,omitempty"`
+	ApplyUnique            bool     `json:"applyUnique,omitempty"`
+	Status                 string   `json:"status,omitempty"`
+	StartTimeFrom          int64    `json:"startTimeFrom"`
+	StartTimeTo            int64    `json:"startTimeTo"`
+	NamePattern            string   `json:"namePattern"`
+	Limit                  int      `json:"limit"`
+	Offset                 int      `json:"offset"`
+	States                 []string `json:"states"`
 }

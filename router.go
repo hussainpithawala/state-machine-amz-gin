@@ -48,6 +48,14 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 		api.POST("/state-machines/:stateMachineId/executions/batch", handlers.ExecuteBatch)
 		api.POST("/queue/enqueue", handlers.EnqueueExecution)
 
+		// Bulk Execution with Orchestration
+		api.POST("/state-machines/:stateMachineId/executions/bulk", handlers.ExecuteBulk)
+		api.GET("/bulk/:orchestratorId/status", handlers.GetBulkStatus)
+		api.POST("/bulk/:orchestratorId/pause", handlers.PauseBulkExecution)
+		api.POST("/bulk/:orchestratorId/resume", handlers.ResumeBulkExecution)
+		api.DELETE("/bulk/:orchestratorId", handlers.CancelBulkExecution)
+		api.GET("/bulk", handlers.ListBulkExecutions)
+
 		// Message/Resume
 		api.POST("/executions/:executionId/resume", handlers.ResumeExecution)
 		api.POST("/state-machines/:stateMachineId/resume-by-correlation", handlers.ResumeByCorrelation)

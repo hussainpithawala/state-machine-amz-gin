@@ -57,6 +57,7 @@ func main() {
     // Setup server
     serverConfig := &middleware.Config{
         RepositoryManager: repoManager,
+        Orchestrator:      nil, // Optional: enable micro-batch orchestration hooks
         BasePath:          "/api/v1",
     }
 
@@ -375,6 +376,7 @@ queueConfig := &queue.Config{
 serverConfig := &middleware.Config{
     RepositoryManager: repoManager,
     QueueClient:       queueClient,  // Optional
+    Orchestrator:      nil, // Optional
     BasePath:          "/api/v1",
 }
 ```
@@ -408,6 +410,7 @@ app.GET("/", homeHandler)
 // Add state machine routes
 serverConfig := &middleware.Config{
     RepositoryManager: repoManager,
+    Orchestrator:      nil, // Optional
     BasePath:          "/state-machine",
 }
 

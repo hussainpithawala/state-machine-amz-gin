@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/batch"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
@@ -12,12 +13,13 @@ type Config struct {
 	RepositoryManager   *repository.Manager
 	QueueClient         *queue.Client
 	BaseExecutor        *executor.BaseExecutor
+	Orchestrator        *batch.Orchestrator  // Optional: Orchestrator for micro-batch signaling
 	WorkerConfig        *WorkerConfig        // Optional: Configuration for background worker
 	BasePath            string               // e.g., "/api/v1"
 	TransformerRegistry *TransformerRegistry // Optional: Registry of custom transformers
 }
 
-// StateMachineMiddleware injects repository manager, queue client, and base executor into gin context
+// StateMachineMiddleware injects shared runtime dependencies into gin context
 func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if config.RepositoryManager != nil {
@@ -28,6 +30,9 @@ func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 		}
 		if config.BaseExecutor != nil {
 			c.Set("baseExecutor", config.BaseExecutor)
+		}
+		if config.Orchestrator != nil {
+			c.Set("orchestrator", config.Orchestrator)
 		}
 		if config.WorkerConfig != nil {
 			c.Set("workerConfig", config.WorkerConfig)
@@ -72,13 +77,23 @@ func GetBaseExecutor(c *gin.Context) (*executor.BaseExecutor, bool) {
 	return baseExecutor, ok
 }
 
+// GetOrchestrator retrieves the orchestrator from gin context
+func GetOrchestrator(c *gin.Context) (*batch.Orchestrator, bool) {
+	orch, exists := c.Get("orchestrator")
+	if !exists {
+		return nil, false
+	}
+	orchestrator, ok := orch.(*batch.Orchestrator)
+	return orchestrator, ok
+}
+
 func GetTransformerRegistry(c *gin.Context) (TransformerRegistry, bool) {
 	registry, exists := c.Get("transformerRegistry")
 	if !exists {
 		return nil, false
 	}
-	reg, ok := registry.(*TransformerRegistry)
-	return *reg, ok
+	reg, ok := registry.(TransformerRegistry)
+	return reg, ok
 }
 
 // ErrorHandler is a middleware that handles panics and returns proper error responses

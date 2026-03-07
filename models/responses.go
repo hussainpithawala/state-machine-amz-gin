@@ -127,3 +127,49 @@ type ListStateMachinesResponse struct {
 type ListTransformersResponse struct {
 	Transformers []string `json:"transformers"`
 }
+
+// BulkExecutionResponse represents the response for bulk execution with orchestration
+type BulkExecutionResponse struct {
+	OrchestratorID string  `json:"orchestratorId"`
+	BatchID        string  `json:"batchId"`
+	Status         string  `json:"status"` // "Running", "Paused", "Completed", "Failed", "Cancelled"
+	TotalEnqueued  int     `json:"totalEnqueued"`
+	TotalFailed    int     `json:"totalFailed"`
+	Mode           string  `json:"mode"`
+	PausedAtBatch  int     `json:"pausedAtBatch,omitempty"`
+	FailureRate    float64 `json:"failureRate,omitempty"`
+}
+
+// BulkStatusResponse represents the status of a bulk execution
+type BulkStatusResponse struct {
+	OrchestratorID string        `json:"orchestratorId"`
+	Status         string        `json:"status"`
+	Progress       *BulkProgress `json:"progress,omitempty"`
+	Metrics        *BulkMetrics  `json:"metrics,omitempty"`
+}
+
+// BulkProgress represents the progress of a bulk execution
+type BulkProgress struct {
+	TotalBatches        int `json:"totalBatches"`
+	CompletedBatches    int `json:"completedBatches"`
+	CurrentBatch        int `json:"currentBatch"`
+	TotalExecutions     int `json:"totalExecutions"`
+	CompletedExecutions int `json:"completedExecutions"`
+}
+
+// BulkMetrics represents metrics for a bulk execution
+type BulkMetrics struct {
+	SuccessRate     float64 `json:"successRate"`
+	FailureRate     float64 `json:"failureRate"`
+	AverageDuration float64 `json:"averageDuration"`
+	PausedAtBatch   int     `json:"pausedAtBatch,omitempty"`
+	LastUpdated     int64   `json:"lastUpdated"`
+}
+
+// BulkActionResponse represents the response for bulk actions (pause/resume/cancel)
+type BulkActionResponse struct {
+	OrchestratorID string `json:"orchestratorId"`
+	Action         string `json:"action"`
+	Success        bool   `json:"success"`
+	Message        string `json:"message,omitempty"`
+}

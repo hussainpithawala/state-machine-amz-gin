@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/batch"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/handler"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
@@ -19,6 +20,8 @@ type WorkerConfig struct {
 	QueueConfig       *queue.Config
 	RepositoryManager *repository.Manager
 	BaseExecutor      *executor.BaseExecutor
+	BatchOrchestrator *batch.Orchestrator
+	BulkOrchestrator  *batch.Orchestrator
 	EnableWorker      bool // Flag to enable/disable worker
 }
 
@@ -61,7 +64,12 @@ func NewWorker(config *WorkerConfig) (*Worker, error) {
 	queueClient, _ := queue.NewClient(config.QueueConfig)
 
 	// Create execution handler with executor
-	newExecutionHandlerWithContext := handler.NewExecutionHandlerWithContext(config.RepositoryManager, queueClient, execAdapter)
+	newExecutionHandlerWithContext := handler.NewExecutionHandlerWithContext(
+		config.RepositoryManager,
+		queueClient,
+		execAdapter,
+		config.BatchOrchestrator,
+	)
 
 	// Create queue worker with handler
 	queueWorker, err := queue.NewWorker(config.QueueConfig, newExecutionHandlerWithContext)

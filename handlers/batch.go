@@ -84,6 +84,7 @@ func ExecuteBatch(c *gin.Context) {
 		if req.Filter.StartTimeTo != 0 {
 			sourceExecutionFilter.StartBefore = time.Unix(req.Filter.StartTimeTo, 0)
 		}
+
 	}
 
 	// Default values
@@ -99,6 +100,8 @@ func ExecuteBatch(c *gin.Context) {
 		NamePrefix:        req.NamePrefix,
 		ConcurrentBatches: req.Concurrency,
 		StopOnError:       req.StopOnError,
+		DoMicroBatch:      req.DoMicroBatch,
+		MicroBatchSize:    req.MicroBatchSize,
 		//Mode:              req.Mode, // "distributed", "concurrent", "sequential"
 	}
 
@@ -106,20 +109,22 @@ func ExecuteBatch(c *gin.Context) {
 	sourceInputTransformer := req.Filter.SourceInputTransformer
 	applyUnique := req.Filter.ApplyUnique
 
-	transformerRegistry, _ := middleware.GetTransformerRegistry(c)
-	transformerFunc := transformerRegistry[sourceInputTransformer]
-
-	// Build execution options
 	var execOpts []statemachine.ExecutionOption
 
 	if applyUnique {
 		execOpts = append(execOpts, statemachine.WithUniqueness(applyUnique))
 	}
 
-	if transformerFunc != nil {
-		// add both input transformer name and function to execution options
-		execOpts = append(execOpts, statemachine.WithInputTransformerName(sourceInputTransformer))
-		execOpts = append(execOpts, statemachine.WithInputTransformer(transformerFunc))
+	if sourceInputTransformer != "" {
+		transformerRegistry, ok := middleware.GetTransformerRegistry(c)
+		if ok && transformerRegistry != nil {
+			transformerFunc := transformerRegistry[sourceInputTransformer]
+			if transformerFunc != nil {
+				// add both input transformer name and function to execution options
+				execOpts = append(execOpts, statemachine.WithInputTransformerName(sourceInputTransformer))
+				execOpts = append(execOpts, statemachine.WithInputTransformer(transformerFunc))
+			}
+		}
 	}
 
 	// Execute batch
