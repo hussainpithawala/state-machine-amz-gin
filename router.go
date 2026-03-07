@@ -46,6 +46,11 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 
 		// Batch Execution
 		api.POST("/state-machines/:stateMachineId/executions/batch", handlers.ExecuteBatch)
+		api.GET("/batch/:batchId/status", handlers.GetBatchStatus)
+		api.POST("/batch/:batchId/pause", handlers.PauseBatchExecution)
+		api.POST("/batch/:batchId/resume", handlers.ResumeBatchExecution)
+		api.DELETE("/batch/:batchId", handlers.CancelBatchExecution)
+		api.GET("/batch", handlers.ListBatches)
 		api.POST("/queue/enqueue", handlers.EnqueueExecution)
 
 		// Bulk Execution with Orchestration
