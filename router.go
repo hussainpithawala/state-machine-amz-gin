@@ -18,7 +18,7 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 	// Base path
 	basePath := config.BasePath
 	if basePath == "" {
-		basePath = "/api/v1"
+		basePath = "/api"
 	}
 
 	api := router.Group(basePath)

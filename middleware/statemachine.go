@@ -8,12 +8,16 @@ import (
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
 )
 
+const bulkOrchestratorKey = "bulkOrchestrator"
+const batchOrchestratorKey = "batchOrchestrator"
+
 // Config holds the configuration for the state machine middleware
 type Config struct {
 	RepositoryManager   *repository.Manager
 	QueueClient         *queue.Client
 	BaseExecutor        *executor.BaseExecutor
-	Orchestrator        *batch.Orchestrator  // Optional: Orchestrator for micro-batch signaling
+	BulkOrchestrator    *batch.Orchestrator  // Optional: BulkOrchestrator for micro-bulk signaling
+	BatchOrchestrator   *batch.Orchestrator  // Optional: BatchOrchestrator for micro-batch signaling
 	WorkerConfig        *WorkerConfig        // Optional: Configuration for background worker
 	BasePath            string               // e.g., "/api/v1"
 	TransformerRegistry *TransformerRegistry // Optional: Registry of custom transformers
@@ -31,8 +35,11 @@ func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 		if config.BaseExecutor != nil {
 			c.Set("baseExecutor", config.BaseExecutor)
 		}
-		if config.Orchestrator != nil {
-			c.Set("orchestrator", config.Orchestrator)
+		if config.BulkOrchestrator != nil {
+			c.Set(bulkOrchestratorKey, config.BulkOrchestrator)
+		}
+		if config.BatchOrchestrator != nil {
+			c.Set(batchOrchestratorKey, config.BatchOrchestrator)
 		}
 		if config.WorkerConfig != nil {
 			c.Set("workerConfig", config.WorkerConfig)
@@ -75,6 +82,24 @@ func GetBaseExecutor(c *gin.Context) (*executor.BaseExecutor, bool) {
 	}
 	baseExecutor, ok := exec.(*executor.BaseExecutor)
 	return baseExecutor, ok
+}
+
+func GetBulkOrchestrator(c *gin.Context) (*batch.Orchestrator, bool) {
+	orch, exists := c.Get(bulkOrchestratorKey)
+	if !exists {
+		return nil, false
+	}
+	orchestrator, ok := orch.(*batch.Orchestrator)
+	return orchestrator, ok
+}
+
+func GetBatchOrchestrator(c *gin.Context) (*batch.Orchestrator, bool) {
+	orch, exists := c.Get(batchOrchestratorKey)
+	if !exists {
+		return nil, false
+	}
+	orchestrator, ok := orch.(*batch.Orchestrator)
+	return orchestrator, ok
 }
 
 // GetOrchestrator retrieves the orchestrator from gin context

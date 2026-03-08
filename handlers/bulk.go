@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -23,8 +24,7 @@ func ExecuteBulk(c *gin.Context) {
 		})
 		return
 	}
-
-	orchestrator, hasOrchestrator := middleware.GetOrchestrator(c)
+	orchestrator, hasOrchestrator := middleware.GetBulkOrchestrator(c)
 	stateMachineID := c.Param("stateMachineId")
 
 	var req models.ExecuteBulkRequest
@@ -37,77 +37,13 @@ func ExecuteBulk(c *gin.Context) {
 		return
 	}
 
-	// Load state machine
-	sm, err := persistent.NewFromDefnId(c.Request.Context(), stateMachineID, repoManager)
-	if err != nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Error:   "State machine not found",
-			Message: err.Error(),
-			Code:    http.StatusNotFound,
-		})
-		return
-	}
-
-	// Build inputs from filter or explicit list
-	var inputs []interface{}
-
-	// Option 1: Use explicit execution name list
-	if len(req.ExecutionNameList) > 0 {
-		for _, name := range req.ExecutionNameList {
-			inputs = append(inputs, map[string]interface{}{"executionName": name})
-		}
-	}
-
-	// Option 2: Query from repository using filter (similar to batch)
-	if req.Filter != nil && len(inputs) == 0 {
-		execFilter := &repository.ExecutionFilter{}
-
-		if req.Filter.SourceStateMachineId != "" {
-			execFilter.StateMachineID = req.Filter.SourceStateMachineId
-		} else {
-			execFilter.StateMachineID = stateMachineID
-		}
-
-		if req.Filter.Status != "" {
-			execFilter.Status = req.Filter.Status
-		}
-
-		if req.Filter.Limit != 0 {
-			execFilter.Limit = req.Filter.Limit
-		}
-
-		if req.Filter.Offset != 0 {
-			execFilter.Offset = req.Filter.Offset
-		}
-
-		if req.Filter.StartTimeFrom != 0 {
-			execFilter.StartAfter = time.Unix(req.Filter.StartTimeFrom, 0)
-		}
-
-		if req.Filter.StartTimeTo != 0 {
-			execFilter.StartBefore = time.Unix(req.Filter.StartTimeTo, 0)
-		}
-
-		// Fetch executions from repository
-		executions, err := repoManager.ListExecutions(c.Request.Context(), execFilter)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-				Error:   "Failed to fetch executions",
-				Message: err.Error(),
-				Code:    http.StatusInternalServerError,
-			})
-			return
-		}
-
-		for _, exec := range executions {
-			inputs = append(inputs, exec.Input)
-		}
-	}
+	// Build inputs from request
+	inputs := req.Inputs
 
 	if len(inputs) == 0 {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "No inputs provided",
-			Message: "Provide either executionNameList or filter to fetch executions",
+			Message: "Provide inputs as a JSON array",
 			Code:    http.StatusBadRequest,
 		})
 		return
@@ -130,99 +66,64 @@ func ExecuteBulk(c *gin.Context) {
 		MicroBatchSize:    req.MicroBatchSize,
 	}
 
-	sourceInputTransformer := ""
-	if req.Filter != nil {
-		sourceInputTransformer = req.Filter.SourceInputTransformer
-	}
-
 	var execOpts []statemachine.ExecutionOption
-
-	if req.Filter != nil && req.Filter.ApplyUnique {
-		execOpts = append(execOpts, statemachine.WithUniqueness(req.Filter.ApplyUnique))
-	}
-
-	if sourceInputTransformer != "" {
-		transformerRegistry, ok := middleware.GetTransformerRegistry(c)
-		if ok && transformerRegistry != nil {
-			transformerFunc := transformerRegistry[sourceInputTransformer]
-			if transformerFunc != nil {
-				execOpts = append(execOpts, statemachine.WithInputTransformerName(sourceInputTransformer))
-				execOpts = append(execOpts, statemachine.WithInputTransformer(transformerFunc))
-			}
-		}
-	}
 
 	// Generate batch ID
 	batchID := fmt.Sprintf("%s-%d", req.NamePrefix, time.Now().Unix())
 
-	// Execute bulk with orchestration
-	if hasOrchestrator && orchestrator != nil && req.DoMicroBatch {
-		// Use orchestrator for micro-batch lifecycle management
-		errorChan, err := orchestrator.RunBulk(c.Request.Context(), batchID, inputs, stateMachineID, bulkOpts, execOpts)
+	// Execute bulk asynchronously using background context
+	// We don't wait for completion - run in background
+	go func() {
+		bgCtx := context.Background()
+
+		// Load state machine with background context to avoid cancellation
+		sm, err := persistent.NewFromDefnId(bgCtx, stateMachineID, repoManager)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-				Error:   "Bulk execution failed to start",
-				Message: err.Error(),
-				Code:    http.StatusInternalServerError,
-			})
+			fmt.Printf("Failed to load state machine for bulk execution: %v\n", err)
 			return
 		}
 
-		// Monitor for immediate errors
-		go func() {
-			for err := range errorChan {
-				_ = err // Log or handle errors
+		if hasOrchestrator && orchestrator != nil && req.DoMicroBatch {
+			// Use orchestrator for micro-batch lifecycle management
+			errorChan, err := orchestrator.RunBulk(bgCtx, batchID, inputs, stateMachineID, bulkOpts, execOpts)
+			if err != nil {
+				// Log error but don't fail the HTTP request
+				fmt.Printf("Bulk execution failed to start: %v\n", err)
+				return
 			}
-		}()
 
-		c.JSON(http.StatusOK, models.BulkExecutionResponse{
-			OrchestratorID: batchID,
-			BatchID:        batchID,
-			Status:         "Running",
-			TotalEnqueued:  len(inputs),
-			TotalFailed:    0,
-			Mode:           req.Mode,
-		})
-	} else {
-		// Fallback to regular bulk execution without orchestration
-		results, err := sm.ExecuteBulk(c.Request.Context(), inputs, bulkOpts, execOpts...)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-				Error:   "Bulk execution failed",
-				Message: err.Error(),
-				Code:    http.StatusInternalServerError,
-			})
-			return
-		}
-
-		// Count successes and failures
-		totalEnqueued := 0
-		totalFailed := 0
-		for _, result := range results {
-			if result.Error == nil {
-				totalEnqueued++
-			} else {
-				totalFailed++
+			// Monitor for errors in background
+			go func() {
+				for err := range errorChan {
+					fmt.Printf("Bulk execution error: %v\n", err)
+				}
+			}()
+		} else {
+			// Fallback to regular bulk execution without orchestration
+			_, err := sm.ExecuteBulk(bgCtx, inputs, bulkOpts, execOpts...)
+			if err != nil {
+				fmt.Printf("Bulk execution failed: %v\n", err)
 			}
 		}
+	}()
 
-		c.JSON(http.StatusOK, models.BulkExecutionResponse{
-			OrchestratorID: batchID,
-			BatchID:        batchID,
-			Status:         "Completed",
-			TotalEnqueued:  totalEnqueued,
-			TotalFailed:    totalFailed,
-			Mode:           req.Mode,
-		})
-	}
+	// Return immediately - bulk is running in background
+	c.JSON(http.StatusAccepted, models.BulkExecutionResponse{
+		OrchestratorID: batchID,
+		BatchID:        batchID,
+		Status:         "Accepted",
+		TotalEnqueued:  len(inputs),
+		TotalFailed:    0,
+		Mode:           req.Mode,
+	})
 }
 
 // GetBulkStatus retrieves the status of a bulk execution
 func GetBulkStatus(c *gin.Context) {
-	orchestrator, ok := middleware.GetOrchestrator(c)
+	orchestrator, ok := middleware.GetBulkOrchestrator(c)
 	if !ok || orchestrator == nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "Orchestrator not configured",
+			Error:   "BulkOrchestrator not configured",
 			Message: "Bulk orchestration is not available",
 			Code:    http.StatusInternalServerError,
 		})
@@ -246,10 +147,10 @@ func GetBulkStatus(c *gin.Context) {
 
 // PauseBulkExecution pauses a running bulk execution by signaling the orchestrator
 func PauseBulkExecution(c *gin.Context) {
-	orchestrator, ok := middleware.GetOrchestrator(c)
+	orchestrator, ok := middleware.GetBulkOrchestrator(c)
 	if !ok || orchestrator == nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "Orchestrator not configured",
+			Error:   "BulkOrchestrator not configured",
 			Message: "Bulk orchestration is not available",
 			Code:    http.StatusInternalServerError,
 		})
@@ -279,10 +180,10 @@ func PauseBulkExecution(c *gin.Context) {
 
 // ResumeBulkExecution resumes a paused bulk execution
 func ResumeBulkExecution(c *gin.Context) {
-	orchestrator, ok := middleware.GetOrchestrator(c)
+	orchestrator, ok := middleware.GetBulkOrchestrator(c)
 	if !ok || orchestrator == nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "Orchestrator not configured",
+			Error:   "BulkOrchestrator not configured",
 			Message: "Bulk orchestration is not available",
 			Code:    http.StatusInternalServerError,
 		})
@@ -312,10 +213,10 @@ func ResumeBulkExecution(c *gin.Context) {
 
 // CancelBulkExecution cancels a bulk execution
 func CancelBulkExecution(c *gin.Context) {
-	orchestrator, ok := middleware.GetOrchestrator(c)
+	orchestrator, ok := middleware.GetBulkOrchestrator(c)
 	if !ok || orchestrator == nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "Orchestrator not configured",
+			Error:   "BulkOrchestrator not configured",
 			Message: "Bulk orchestration is not available",
 			Code:    http.StatusInternalServerError,
 		})

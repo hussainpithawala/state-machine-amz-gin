@@ -127,7 +127,8 @@ func main() {
 		RepositoryManager:   repoManager,
 		QueueClient:         queueClient,
 		BaseExecutor:        baseExecutor,
-		Orchestrator:        bulkOrchestrator,
+		BatchOrchestrator:   batchOrchestrator,
+		BulkOrchestrator:    bulkOrchestrator,
 		WorkerConfig:        workerConfig,
 		BasePath:            "/state-machines/api/v1",
 		TransformerRegistry: RegisterTransformerFunctions(),
@@ -176,9 +177,13 @@ func createMiddlewareOrchestrator(
 	}
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     queueConfig.RedisClientOpt.Addr,
-		Password: queueConfig.RedisClientOpt.Password,
-		DB:       queueConfig.RedisClientOpt.DB,
+		Addr:         queueConfig.RedisClientOpt.Addr,
+		Password:     queueConfig.RedisClientOpt.Password,
+		DB:           queueConfig.RedisClientOpt.DB,
+		TLSConfig:    queueConfig.RedisClientOpt.TLSConfig,
+		ReadTimeout:  queueConfig.RedisClientOpt.ReadTimeout,
+		WriteTimeout: queueConfig.RedisClientOpt.WriteTimeout,
+		PoolSize:     queueConfig.RedisClientOpt.PoolSize,
 	})
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
@@ -212,7 +217,7 @@ func createMiddlewareOrchestrator(
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create bulkOrchestrator: %w", err)
 	}
-	if err := bulkOrchestrator.EnsureDefinition(ctx, batch.OrchestratorDefinitionJSON(), batch.BulkOrchestratorStateMachineID); err != nil {
+	if err := bulkOrchestrator.EnsureDefinition(ctx, batch.BulkOrchestratorDefinitionJSON(), batch.BulkOrchestratorStateMachineID); err != nil {
 		return nil, nil, fmt.Errorf("failed to register bulkOrchestrator definition: %w", err)
 	}
 
