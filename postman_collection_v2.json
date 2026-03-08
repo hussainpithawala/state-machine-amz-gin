@@ -44,8 +44,10 @@
               "raw": "{{baseUrl}}/health",
               "host": ["{{baseUrl}}"],
               "path": ["health"]
-            }
-          }
+            },
+            "description": "Check the health status of the service and its dependencies"
+          },
+          "response": []
         }
       ]
     },
@@ -70,8 +72,10 @@
               "raw": "{{baseUrl}}/state-machines",
               "host": ["{{baseUrl}}"],
               "path": ["state-machines"]
-            }
-          }
+            },
+            "description": "Create a new state machine definition"
+          },
+          "response": []
         },
         {
           "name": "Get State Machine",
@@ -82,8 +86,10 @@
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}",
               "host": ["{{baseUrl}}"],
               "path": ["state-machines", "{{stateMachineId}}"]
-            }
-          }
+            },
+            "description": "Retrieve a state machine by ID"
+          },
+          "response": []
         },
         {
           "name": "List State Machines",
@@ -98,23 +104,13 @@
                 {
                   "key": "name",
                   "value": "",
-                  "description": "Filter by name"
+                  "description": "Filter by state machine name"
                 }
               ]
-            }
-          }
-        },
-        {
-          "name": "List Transformers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/transformers",
-              "host": ["{{baseUrl}}"],
-              "path": ["transformers"]
-            }
-          }
+            },
+            "description": "Retrieve a list of all state machines with optional filtering"
+          },
+          "response": []
         }
       ]
     },
@@ -133,14 +129,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"execution-1\",\n  \"input\": {\n    \"key\": \"value\"\n  },\n  \"sourceExecutionId\": \"\",\n  \"sourceStateName\": \"\",\n  \"sourceInputTransformer\": \"\"\n}"
+              "raw": "{\n  \"name\": \"execution-1\",\n  \"input\": {\n    \"key\": \"value\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions",
               "host": ["{{baseUrl}}"],
               "path": ["state-machines", "{{stateMachineId}}", "executions"]
-            }
-          }
+            },
+            "description": "Start a new execution for a state machine"
+          },
+          "response": []
         },
         {
           "name": "Get Execution",
@@ -151,8 +149,10 @@
               "raw": "{{baseUrl}}/executions/{{executionId}}",
               "host": ["{{baseUrl}}"],
               "path": ["executions", "{{executionId}}"]
-            }
-          }
+            },
+            "description": "Retrieve details of a specific execution"
+          },
+          "response": []
         },
         {
           "name": "List Executions",
@@ -167,21 +167,23 @@
                 {
                   "key": "status",
                   "value": "",
-                  "description": "Filter by status (RUNNING, SUCCEEDED, FAILED, etc.)"
+                  "description": "Filter by execution status (RUNNING, SUCCEEDED, FAILED, CANCELLED, PAUSED)"
                 },
                 {
                   "key": "limit",
                   "value": "50",
-                  "description": "Number of results to return"
+                  "description": "Maximum number of results to return"
                 },
                 {
                   "key": "offset",
                   "value": "0",
-                  "description": "Offset for pagination"
+                  "description": "Number of results to skip"
                 }
               ]
-            }
-          }
+            },
+            "description": "List all executions for a state machine with filtering and pagination"
+          },
+          "response": []
         },
         {
           "name": "Count Executions",
@@ -196,11 +198,13 @@
                 {
                   "key": "status",
                   "value": "",
-                  "description": "Filter by status"
+                  "description": "Filter by execution status"
                 }
               ]
-            }
-          }
+            },
+            "description": "Get the count of executions matching the filter criteria"
+          },
+          "response": []
         },
         {
           "name": "Stop Execution",
@@ -211,8 +215,10 @@
               "raw": "{{baseUrl}}/executions/{{executionId}}",
               "host": ["{{baseUrl}}"],
               "path": ["executions", "{{executionId}}"]
-            }
-          }
+            },
+            "description": "Stop a running execution"
+          },
+          "response": []
         },
         {
           "name": "Get Execution History",
@@ -223,8 +229,29 @@
               "raw": "{{baseUrl}}/executions/{{executionId}}/history",
               "host": ["{{baseUrl}}"],
               "path": ["executions", "{{executionId}}", "history"]
-            }
-          }
+            },
+            "description": "Retrieve the state transition history for an execution"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Transformers",
+      "item": [
+        {
+          "name": "List Transformers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transformers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transformers"]
+            },
+            "description": "List available input transformers"
+          },
+          "response": []
         }
       ]
     },
@@ -243,14 +270,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"filter\": {\n    \"sourceStateMachineId\": \"\",\n    \"sourceStateName\": \"\",\n    \"sourceInputTransformer\": \"\",\n    \"applyUnique\": false,\n    \"status\": \"FAILED\",\n    \"startTimeFrom\": 0,\n    \"startTimeTo\": 0,\n    \"namePattern\": \"\",\n    \"limit\": 10,\n    \"offset\": 0,\n    \"states\": []\n  },\n  \"namePrefix\": \"retry-batch\",\n  \"concurrency\": 5,\n  \"mode\": \"distributed\",\n  \"stopOnError\": false,\n  \"executionNameList\": [],\n  \"doMicroBatch\": false,\n  \"microBatchSize\": 100\n}"
+              "raw": "{\n  \"filter\": {\n    \"status\": \"FAILED\",\n    \"startTimeFrom\": 0,\n    \"startTimeTo\": 0,\n    \"namePattern\": \"\",\n    \"limit\": 10,\n    \"offset\": 0,\n    \"states\": []\n  },\n  \"namePrefix\": \"retry-batch\",\n  \"concurrency\": 5,\n  \"mode\": \"distributed\",\n  \"stopOnError\": false,\n  \"executionNameList\": []\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions/batch",
               "host": ["{{baseUrl}}"],
               "path": ["state-machines", "{{stateMachineId}}", "executions", "batch"]
-            }
-          }
+            },
+            "description": "Execute a batch of executions with specified parameters"
+          },
+          "response": []
         },
         {
           "name": "Get Batch Status",
@@ -261,8 +290,10 @@
               "raw": "{{baseUrl}}/batch/{{batchId}}/status",
               "host": ["{{baseUrl}}"],
               "path": ["batch", "{{batchId}}", "status"]
-            }
-          }
+            },
+            "description": "Get the status of a batch execution"
+          },
+          "response": []
         },
         {
           "name": "Pause Batch",
@@ -273,8 +304,10 @@
               "raw": "{{baseUrl}}/batch/{{batchId}}/pause",
               "host": ["{{baseUrl}}"],
               "path": ["batch", "{{batchId}}", "pause"]
-            }
-          }
+            },
+            "description": "Pause a running batch execution"
+          },
+          "response": []
         },
         {
           "name": "Resume Batch",
@@ -285,8 +318,10 @@
               "raw": "{{baseUrl}}/batch/{{batchId}}/resume",
               "host": ["{{baseUrl}}"],
               "path": ["batch", "{{batchId}}", "resume"]
-            }
-          }
+            },
+            "description": "Resume a paused batch execution"
+          },
+          "response": []
         },
         {
           "name": "Cancel Batch",
@@ -297,8 +332,10 @@
               "raw": "{{baseUrl}}/batch/{{batchId}}",
               "host": ["{{baseUrl}}"],
               "path": ["batch", "{{batchId}}"]
-            }
-          }
+            },
+            "description": "Cancel a batch execution"
+          },
+          "response": []
         },
         {
           "name": "List All Batches",
@@ -309,8 +346,10 @@
               "raw": "{{baseUrl}}/batch",
               "host": ["{{baseUrl}}"],
               "path": ["batch"]
-            }
-          }
+            },
+            "description": "List all batch executions"
+          },
+          "response": []
         }
       ]
     },
@@ -329,14 +368,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"filter\": {\n    \"sourceStateMachineId\": \"\",\n    \"sourceStateName\": \"\",\n    \"sourceInputTransformer\": \"\",\n    \"applyUnique\": false,\n    \"status\": \"\",\n    \"startTimeFrom\": 0,\n    \"startTimeTo\": 0,\n    \"namePattern\": \"\",\n    \"limit\": 100,\n    \"offset\": 0,\n    \"states\": []\n  },\n  \"namePrefix\": \"bulk-operation\",\n  \"concurrency\": 10,\n  \"mode\": \"concurrent\",\n  \"stopOnError\": false,\n  \"executionNameList\": [],\n  \"doMicroBatch\": true,\n  \"microBatchSize\": 500,\n  \"orchestratorId\": \"\",\n  \"pauseThreshold\": 0.1,\n  \"resumeStrategy\": \"manual\",\n  \"timeoutSeconds\": 300\n}"
+              "raw": "{\n  \"filter\": {\n    \"status\": \"\",\n    \"startTimeFrom\": 0,\n    \"startTimeTo\": 0,\n    \"namePattern\": \"\",\n    \"limit\": 100,\n    \"offset\": 0,\n    \"states\": []\n  },\n  \"namePrefix\": \"bulk-operation\",\n  \"concurrency\": 10,\n  \"mode\": \"concurrent\",\n  \"stopOnError\": false,\n  \"executionNameList\": [],\n  \"doMicroBatch\": true,\n  \"microBatchSize\": 500,\n  \"orchestratorId\": \"\",\n  \"pauseThreshold\": 0.1,\n  \"resumeStrategy\": \"manual\",\n  \"timeoutSeconds\": 300\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions/bulk",
               "host": ["{{baseUrl}}"],
               "path": ["state-machines", "{{stateMachineId}}", "executions", "bulk"]
-            }
-          }
+            },
+            "description": "Execute bulk operations with orchestration support"
+          },
+          "response": []
         },
         {
           "name": "Get Bulk Status",
@@ -347,8 +388,10 @@
               "raw": "{{baseUrl}}/bulk/{{orchestratorId}}/status",
               "host": ["{{baseUrl}}"],
               "path": ["bulk", "{{orchestratorId}}", "status"]
-            }
-          }
+            },
+            "description": "Get the status of a bulk execution"
+          },
+          "response": []
         },
         {
           "name": "Pause Bulk",
@@ -359,8 +402,10 @@
               "raw": "{{baseUrl}}/bulk/{{orchestratorId}}/pause",
               "host": ["{{baseUrl}}"],
               "path": ["bulk", "{{orchestratorId}}", "pause"]
-            }
-          }
+            },
+            "description": "Pause a running bulk execution"
+          },
+          "response": []
         },
         {
           "name": "Resume Bulk",
@@ -371,8 +416,10 @@
               "raw": "{{baseUrl}}/bulk/{{orchestratorId}}/resume",
               "host": ["{{baseUrl}}"],
               "path": ["bulk", "{{orchestratorId}}", "resume"]
-            }
-          }
+            },
+            "description": "Resume a paused bulk execution"
+          },
+          "response": []
         },
         {
           "name": "Cancel Bulk",
@@ -383,8 +430,10 @@
               "raw": "{{baseUrl}}/bulk/{{orchestratorId}}",
               "host": ["{{baseUrl}}"],
               "path": ["bulk", "{{orchestratorId}}"]
-            }
-          }
+            },
+            "description": "Cancel a bulk execution"
+          },
+          "response": []
         },
         {
           "name": "List All Bulk Executions",
@@ -395,8 +444,10 @@
               "raw": "{{baseUrl}}/bulk",
               "host": ["{{baseUrl}}"],
               "path": ["bulk"]
-            }
-          }
+            },
+            "description": "List all bulk executions"
+          },
+          "response": []
         }
       ]
     },
@@ -421,8 +472,10 @@
               "raw": "{{baseUrl}}/queue/enqueue",
               "host": ["{{baseUrl}}"],
               "path": ["queue", "enqueue"]
-            }
-          }
+            },
+            "description": "Add an execution task to the distributed queue"
+          },
+          "response": []
         }
       ]
     },
@@ -447,8 +500,10 @@
               "raw": "{{baseUrl}}/executions/{{executionId}}/resume",
               "host": ["{{baseUrl}}"],
               "path": ["executions", "{{executionId}}", "resume"]
-            }
-          }
+            },
+            "description": "Resume a paused execution (e.g., waiting on a Message state)"
+          },
+          "response": []
         },
         {
           "name": "Resume By Correlation",
@@ -468,8 +523,10 @@
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/resume-by-correlation",
               "host": ["{{baseUrl}}"],
               "path": ["state-machines", "{{stateMachineId}}", "resume-by-correlation"]
-            }
-          }
+            },
+            "description": "Resume executions waiting on a specific correlation key/value pair"
+          },
+          "response": []
         },
         {
           "name": "Find Waiting Executions",
@@ -483,15 +540,19 @@
               "query": [
                 {
                   "key": "correlationKey",
-                  "value": "orderId"
+                  "value": "orderId",
+                  "description": "The correlation key to search for"
                 },
                 {
                   "key": "correlationValue",
-                  "value": "12345"
+                  "value": "12345",
+                  "description": "The correlation value to search for"
                 }
               ]
-            }
-          }
+            },
+            "description": "Find executions waiting on a specific correlation"
+          },
+          "response": []
         }
       ]
     },
@@ -507,8 +568,10 @@
               "raw": "{{baseUrl}}/openapi.json",
               "host": ["{{baseUrl}}"],
               "path": ["openapi.json"]
-            }
-          }
+            },
+            "description": "Get the OpenAPI specification for this API"
+          },
+          "response": []
         }
       ]
     }
