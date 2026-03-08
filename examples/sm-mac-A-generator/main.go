@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"time"
 )
 
 // Order represents a single order
@@ -16,7 +15,6 @@ type Order struct {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	orders := generateOrders(1000)
 
 	// Write to file
@@ -67,7 +65,11 @@ func saveToFile(filename string, orders []Order) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			fmt.Printf("Error closing file: %v\n", closeErr)
+		}
+	}()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")

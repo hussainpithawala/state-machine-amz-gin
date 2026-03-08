@@ -15,6 +15,14 @@ import (
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/statemachine/persistent"
 )
 
+// Execution status constants
+const (
+	StatusRunning   = "RUNNING"
+	StatusSucceeded = "SUCCEEDED"
+	StatusFailed    = "FAILED"
+	StatusPaused    = "PAUSED"
+)
+
 // ExecuteBatch executes a batch of executions
 func ExecuteBatch(c *gin.Context) {
 	repoManager, ok := middleware.GetRepositoryManager(c)
@@ -85,7 +93,6 @@ func ExecuteBatch(c *gin.Context) {
 		if req.Filter.StartTimeTo != 0 {
 			sourceExecutionFilter.StartBefore = time.Unix(req.Filter.StartTimeTo, 0)
 		}
-
 	}
 
 	// Default values
@@ -248,24 +255,27 @@ func GetBatchStatus(c *gin.Context) {
 
 	for _, exec := range executions {
 		switch exec.Status {
-		case "RUNNING":
+		case StatusRunning:
 			running++
-		case "SUCCEEDED":
+		case StatusSucceeded:
 			succeeded++
-		case "FAILED":
+		case StatusFailed:
 			failed++
-		case "PAUSED":
+		case StatusPaused:
 			paused++
 		}
 	}
 
-	status := "Completed"
-	if running > 0 {
+	var status string
+	switch {
+	case running > 0:
 		status = "Running"
-	} else if paused > 0 {
+	case paused > 0:
 		status = "Paused"
-	} else if failed > 0 && succeeded == 0 {
+	case failed > 0 && succeeded == 0:
 		status = "Failed"
+	default:
+		status = "Completed"
 	}
 
 	c.JSON(http.StatusOK, models.BulkStatusResponse{
