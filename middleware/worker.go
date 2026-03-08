@@ -13,6 +13,7 @@ import (
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/types"
+	"github.com/redis/go-redis/v9"
 )
 
 // WorkerConfig holds configuration for the background worker
@@ -23,6 +24,7 @@ type WorkerConfig struct {
 	BatchOrchestrator *batch.Orchestrator
 	BulkOrchestrator  *batch.Orchestrator
 	EnableWorker      bool // Flag to enable/disable worker
+	RedisClient       *redis.Client
 }
 
 // Worker represents a background worker that consumes from Redis queue
@@ -50,6 +52,11 @@ func NewWorker(config *WorkerConfig) (*Worker, error) {
 
 	if config.RepositoryManager == nil {
 		log.Println("Warning: RepositoryManager is nil, worker cannot be created")
+		return nil, nil
+	}
+
+	if config.RedisClient == nil {
+		log.Println("Warning: RedisClient is nil, worker cannot be created")
 		return nil, nil
 	}
 

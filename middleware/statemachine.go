@@ -6,6 +6,7 @@ import (
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 const bulkOrchestratorKey = "bulkOrchestrator"
@@ -15,6 +16,7 @@ const batchOrchestratorKey = "batchOrchestrator"
 type Config struct {
 	RepositoryManager   *repository.Manager
 	QueueClient         *queue.Client
+	RedisClient         *redis.Client
 	BaseExecutor        *executor.BaseExecutor
 	BulkOrchestrator    *batch.Orchestrator  // Optional: BulkOrchestrator for micro-bulk signaling
 	BatchOrchestrator   *batch.Orchestrator  // Optional: BatchOrchestrator for micro-batch signaling
@@ -29,6 +31,10 @@ func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 		if config.RepositoryManager != nil {
 			c.Set("repositoryManager", config.RepositoryManager)
 		}
+		if config.RedisClient != nil {
+			c.Set("redisClient", config.RedisClient)
+		}
+
 		if config.QueueClient != nil {
 			c.Set("queueClient", config.QueueClient)
 		}
@@ -110,6 +116,15 @@ func GetOrchestrator(c *gin.Context) (*batch.Orchestrator, bool) {
 	}
 	orchestrator, ok := orch.(*batch.Orchestrator)
 	return orchestrator, ok
+}
+
+func GetRedisClient(c *gin.Context) (*redis.Client, bool) {
+	client, exists := c.Get("redisClient")
+	if !exists {
+		return nil, false
+	}
+	redisClient, ok := client.(*redis.Client)
+	return redisClient, ok
 }
 
 func GetTransformerRegistry(c *gin.Context) (TransformerRegistry, bool) {

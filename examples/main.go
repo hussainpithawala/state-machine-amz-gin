@@ -92,6 +92,16 @@ func main() {
 		*/log.Println("Queue client initialized successfully")
 	}
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:         queueConfig.RedisClientOpt.Addr,
+		Password:     queueConfig.RedisClientOpt.Password,
+		DB:           queueConfig.RedisClientOpt.DB,
+		TLSConfig:    queueConfig.RedisClientOpt.TLSConfig,
+		ReadTimeout:  queueConfig.RedisClientOpt.ReadTimeout,
+		WriteTimeout: queueConfig.RedisClientOpt.WriteTimeout,
+		PoolSize:     queueConfig.RedisClientOpt.PoolSize,
+	})
+
 	// Create BaseExecutor with StateRegistry for all task handlers
 	baseExecutor := executor.NewBaseExecutor()
 	RegisterGlobalFunctions(baseExecutor)
@@ -101,7 +111,7 @@ func main() {
 	var batchOrchestrator *batch.Orchestrator
 	var bulkOrchestrator *batch.Orchestrator
 	if queueClient != nil {
-		batchOrchestrator, bulkOrchestrator, err = createMiddlewareOrchestrator(ctx, repoManager, queueClient, queueConfig)
+		batchOrchestrator, bulkOrchestrator, err = createMiddlewareOrchestrator(ctx, repoManager, queueClient, queueConfig, redisClient)
 		if err != nil {
 			log.Printf("Warning: Failed to create bulkOrchestrator: %v (continuing without bulkOrchestrator support)", err)
 		} else {
@@ -119,12 +129,14 @@ func main() {
 			BatchOrchestrator: batchOrchestrator,
 			BulkOrchestrator:  bulkOrchestrator,
 			EnableWorker:      true, // Set to true to enable background worker
+			RedisClient:       redisClient,
 		}
 	}
 
 	// Setup Gin server with state machine middleware
 	serverConfig := &middleware.Config{
 		RepositoryManager:   repoManager,
+		RedisClient:         redisClient,
 		QueueClient:         queueClient,
 		BaseExecutor:        baseExecutor,
 		BatchOrchestrator:   batchOrchestrator,
@@ -171,20 +183,11 @@ func createMiddlewareOrchestrator(
 	repoManager *repository.Manager,
 	queueClient *queue.Client,
 	queueConfig *queue.Config,
+	redisClient *redis.Client,
 ) (batchOrchestrator *batch.Orchestrator, bulkOrchestrator *batch.Orchestrator, orchError error) {
 	if queueConfig == nil || queueConfig.RedisClientOpt == nil {
 		return nil, nil, fmt.Errorf("queue redis configuration is required for batchOrchestrator")
 	}
-
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:         queueConfig.RedisClientOpt.Addr,
-		Password:     queueConfig.RedisClientOpt.Password,
-		DB:           queueConfig.RedisClientOpt.DB,
-		TLSConfig:    queueConfig.RedisClientOpt.TLSConfig,
-		ReadTimeout:  queueConfig.RedisClientOpt.ReadTimeout,
-		WriteTimeout: queueConfig.RedisClientOpt.WriteTimeout,
-		PoolSize:     queueConfig.RedisClientOpt.PoolSize,
-	})
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		return nil, nil, fmt.Errorf("redis ping failed: %w", err)

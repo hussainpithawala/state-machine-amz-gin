@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -59,7 +60,7 @@ func ExecuteBatch(c *gin.Context) {
 	}
 
 	// Set queue client if available and mode is distributed
-	if hasQueue && req.Mode == "distributed" {
+	if hasQueue {
 		sm.SetQueueClient(queueClient)
 	}
 
@@ -103,6 +104,8 @@ func ExecuteBatch(c *gin.Context) {
 		req.Concurrency = 10
 	}
 
+	redisClient, ok := middleware.GetRedisClient(c)
+
 	// Build batch options
 	batchOpts := &statemachine.BatchExecutionOptions{
 		NamePrefix:        req.NamePrefix,
@@ -110,12 +113,19 @@ func ExecuteBatch(c *gin.Context) {
 		StopOnError:       req.StopOnError,
 		DoMicroBatch:      req.DoMicroBatch,
 		MicroBatchSize:    req.MicroBatchSize,
-		//Mode:              req.Mode, // "distributed", "concurrent", "sequential"
+		RedisClient:       redisClient,
 	}
 
-	sourceStateName := req.Filter.SourceStateName
-	sourceInputTransformer := req.Filter.SourceInputTransformer
-	applyUnique := req.Filter.ApplyUnique
+	// Extract filter fields safely
+	var sourceStateName string
+	var sourceInputTransformer string
+	var applyUnique bool
+
+	if req.Filter != nil {
+		sourceStateName = req.Filter.SourceStateName
+		sourceInputTransformer = req.Filter.SourceInputTransformer
+		applyUnique = req.Filter.ApplyUnique
+	}
 
 	var execOpts []statemachine.ExecutionOption
 
@@ -128,41 +138,56 @@ func ExecuteBatch(c *gin.Context) {
 		if ok && transformerRegistry != nil {
 			transformerFunc := transformerRegistry[sourceInputTransformer]
 			if transformerFunc != nil {
-				// add both input transformer name and function to execution options
 				execOpts = append(execOpts, statemachine.WithInputTransformerName(sourceInputTransformer))
 				execOpts = append(execOpts, statemachine.WithInputTransformer(transformerFunc))
 			}
 		}
 	}
 
-	// Execute batch
-	results, err := sm.ExecuteBatch(c.Request.Context(), sourceExecutionFilter, sourceStateName, batchOpts, execOpts...)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "Batch execution failed",
-			Message: err.Error(),
-			Code:    http.StatusInternalServerError,
-		})
-		return
-	}
-
-	// Count successes and failures
-	totalEnqueued := 0
-	totalFailed := 0
-	for _, result := range results {
-		if result.Error == nil {
-			totalEnqueued++
-		} else {
-			totalFailed++
-		}
-	}
-
+	// Generate batch ID
 	batchID := fmt.Sprintf("%s-%d", req.NamePrefix, time.Now().Unix())
 
-	c.JSON(http.StatusOK, models.BatchExecutionResponse{
+	// Execute batch in goroutine with background context to prevent cancellation
+	go func() {
+		bgCtx := context.Background()
+
+		// Reload state machine with background context
+		smBg, err := persistent.NewFromDefnId(bgCtx, stateMachineID, repoManager)
+		if err != nil {
+			fmt.Printf("Failed to load state machine for batch: %v\n", err)
+			return
+		}
+
+		// Set queue client if available and mode is distributed
+		if hasQueue && req.Mode == "distributed" {
+			smBg.SetQueueClient(queueClient)
+		}
+
+		// Execute batch with background context
+		results, err := smBg.ExecuteBatch(bgCtx, sourceExecutionFilter, sourceStateName, batchOpts, execOpts...)
+		if err != nil {
+			fmt.Printf("Batch execution failed: %v\n", err)
+			return
+		}
+
+		// Log results
+		totalEnqueued := 0
+		totalFailed := 0
+		for _, result := range results {
+			if result.Error == nil {
+				totalEnqueued++
+			} else {
+				totalFailed++
+			}
+		}
+		fmt.Printf("Batch %s completed: %d enqueued, %d failed\n", batchID, totalEnqueued, totalFailed)
+	}()
+
+	// Return immediately with batch ID
+	c.JSON(http.StatusAccepted, models.BatchExecutionResponse{
 		BatchID:       batchID,
-		TotalEnqueued: totalEnqueued,
-		TotalFailed:   totalFailed,
+		TotalEnqueued: 0,
+		TotalFailed:   0,
 		Mode:          req.Mode,
 	})
 }
