@@ -375,7 +375,92 @@
               "host": ["{{baseUrl}}"],
               "path": ["state-machines", "{{stateMachineId}}", "executions", "bulk"]
             },
-            "description": "Execute bulk operations with orchestration support"
+            "description": "Execute bulk operations with orchestration support (JSON body)"
+          },
+          "response": []
+        },
+        {
+          "name": "Execute Bulk (Form Data)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "inputs",
+                  "type": "file",
+                  "src": "/path/to/inputs.json",
+                  "description": "JSON file containing array of inputs"
+                },
+                {
+                  "key": "namePrefix",
+                  "value": "bulk-form",
+                  "type": "text",
+                  "description": "Prefix for execution names"
+                },
+                {
+                  "key": "concurrency",
+                  "value": "10",
+                  "type": "text",
+                  "description": "Number of concurrent executions"
+                },
+                {
+                  "key": "mode",
+                  "value": "concurrent",
+                  "type": "text",
+                  "description": "Execution mode: distributed, concurrent, sequential"
+                },
+                {
+                  "key": "stopOnError",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Stop if an error occurs"
+                },
+                {
+                  "key": "doMicroBatch",
+                  "value": "true",
+                  "type": "text",
+                  "description": "Enable micro-batch processing"
+                },
+                {
+                  "key": "microBatchSize",
+                  "value": "500",
+                  "type": "text",
+                  "description": "Size of each micro-batch"
+                },
+                {
+                  "key": "orchestratorId",
+                  "value": "",
+                  "type": "text",
+                  "description": "Custom orchestrator ID"
+                },
+                {
+                  "key": "pauseThreshold",
+                  "value": "0.1",
+                  "type": "text",
+                  "description": "Failure rate threshold for auto-pause (0.0-1.0)"
+                },
+                {
+                  "key": "resumeStrategy",
+                  "value": "manual",
+                  "type": "text",
+                  "description": "Resume strategy: manual, automatic, timeout"
+                },
+                {
+                  "key": "timeoutSeconds",
+                  "value": "300",
+                  "type": "text",
+                  "description": "Timeout for automatic resume"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions/bulk-form",
+              "host": ["{{baseUrl}}"],
+              "path": ["state-machines", "{{stateMachineId}}", "executions", "bulk-form"]
+            },
+            "description": "Execute bulk operations with inputs provided as JSON file via form-data. Useful for large input sets."
           },
           "response": []
         },

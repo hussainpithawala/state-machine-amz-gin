@@ -55,6 +55,7 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 
 		// Bulk Execution with Orchestration
 		api.POST("/state-machines/:stateMachineId/executions/bulk", handlers.ExecuteBulk)
+		api.POST("/state-machines/:stateMachineId/executions/bulk-form", handlers.ExecuteBulkForm)
 		api.GET("/bulk/:orchestratorId/status", handlers.GetBulkStatus)
 		api.POST("/bulk/:orchestratorId/pause", handlers.PauseBulkExecution)
 		api.POST("/bulk/:orchestratorId/resume", handlers.ResumeBulkExecution)
