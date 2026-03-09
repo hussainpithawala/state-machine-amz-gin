@@ -105,6 +105,10 @@ func ExecuteBatch(c *gin.Context) {
 	}
 
 	redisClient, ok := middleware.GetRedisClient(c)
+	if !ok {
+		fmt.Printf("Redis client not configured\n")
+		return
+	}
 
 	// Build batch options
 	batchOpts := &statemachine.BatchExecutionOptions{
