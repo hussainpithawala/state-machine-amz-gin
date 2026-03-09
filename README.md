@@ -2,12 +2,42 @@
 
 A Gin-based REST API framework for managing and executing state machines using the [state-machine-amz-go](https://github.com/hussainpithawala/state-machine-amz-go) library. This framework provides a complete HTTP interface for state machine orchestration, execution management, and distributed queue processing.
 
+## Latest Release - v1.0.7
+
+### 🚀 New: Bulk Execution API with Micro-batch Orchestration
+
+Version 1.0.7 introduces powerful bulk execution capabilities with micro-batch orchestration support:
+
+- **Bulk Execution Endpoints** - Execute thousands of state machine instances with orchestration control
+- **Micro-batch Processing** - Process large input sets in configurable micro-batches for better resource management
+- **Failure Rate Monitoring** - Automatic pause when failure threshold is exceeded
+- **Resume Strategies** - Manual, automatic, or timeout-based resume for paused bulk operations
+- **Real-time Progress Tracking** - Monitor batch completion, success rates, and performance metrics
+- **Enhanced Batch Management** - Pause, resume, and cancel batch executions with full status visibility
+
+```go
+// Example: Bulk execution with micro-batch orchestration
+bulkRequest := ExecuteBulkRequest{
+    NamePrefix:     "bulk-order-processing",
+    Concurrency:    10,
+    Mode:           "concurrent",
+    Inputs:         orderInputs, // []interface{} with thousands of orders
+    DoMicroBatch:   true,
+    MicroBatchSize: 500,
+    PauseThreshold: 0.1, // Auto-pause if 10% failures
+    ResumeStrategy: "manual",
+}
+```
+
+See the [Bulk Operations](#bulk-operations) section for complete API documentation.
+
 ## Features
 
 - 🚀 **RESTful API** for state machine management
 - 🔄 **Execution Control** - Start, stop, and monitor executions
 - 📊 **State History Tracking** - Complete audit trail of state transitions
 - 🔁 **Batch Execution** - Process multiple executions concurrently or via distributed queues
+- 📦 **Bulk Orchestration** - Large-scale execution with micro-batch processing and failure monitoring (v1.0.7)
 - 💬 **Message-Based Resumption** - Resume paused executions with correlation support
 - 🌐 **Distributed Queue Support** - Redis-backed task queue for scalable execution
 - 🏥 **Health Monitoring** - Built-in health checks and queue statistics
@@ -214,6 +244,196 @@ Content-Type: application/json
   "totalFailed": 5,
   "mode": "distributed"
 }
+```
+
+#### Get Batch Status
+```http
+GET /api/v1/batch/{batchId}/status
+```
+
+**Response:**
+```json
+{
+  "batchId": "batch-2026-01-1234567890",
+  "status": "Running",
+  "totalEnqueued": 100,
+  "totalCompleted": 45,
+  "totalFailed": 2
+}
+```
+
+#### Pause Batch
+```http
+POST /api/v1/batch/{batchId}/pause
+```
+
+#### Resume Batch
+```http
+POST /api/v1/batch/{batchId}/resume
+```
+
+#### Cancel Batch
+```http
+DELETE /api/v1/batch/{batchId}
+```
+
+#### List All Batches
+```http
+GET /api/v1/batch
+```
+
+### Bulk Operations (v1.0.7)
+
+#### Execute Bulk (JSON Body)
+```http
+POST /api/v1/state-machines/{stateMachineId}/executions/bulk
+Content-Type: application/json
+
+{
+  "namePrefix": "bulk-order-processing",
+  "concurrency": 10,
+  "mode": "concurrent",
+  "stopOnError": false,
+  "inputs": [
+    {"orderId": "1", "customerId": "CUST-001", "amount": 99.99},
+    {"orderId": "2", "customerId": "CUST-002", "amount": 149.99},
+    {"orderId": "3", "customerId": "CUST-003", "amount": 199.99}
+  ],
+  "doMicroBatch": true,
+  "microBatchSize": 500,
+  "pauseThreshold": 0.1,
+  "resumeStrategy": "manual",
+  "timeoutSeconds": 300
+}
+```
+
+**Response:**
+```json
+{
+  "orchestratorId": "bulk-orch-1234567890",
+  "batchId": "bulk-batch-1234567890",
+  "status": "Running",
+  "totalEnqueued": 1000,
+  "totalFailed": 0,
+  "mode": "concurrent"
+}
+```
+
+#### Execute Bulk (Form Data with File Upload)
+```http
+POST /api/v1/state-machines/{stateMachineId}/executions/bulk-form
+Content-Type: multipart/form-data
+
+inputs: [JSON file containing array of inputs]
+namePrefix: bulk-order-processing
+concurrency: 10
+mode: concurrent
+doMicroBatch: true
+microBatchSize: 500
+pauseThreshold: 0.1
+resumeStrategy: manual
+timeoutSeconds: 300
+```
+
+**Response:**
+```json
+{
+  "orchestratorId": "bulk-orch-1234567890",
+  "batchId": "bulk-batch-1234567890",
+  "status": "Running",
+  "totalEnqueued": 10000,
+  "totalFailed": 0,
+  "mode": "concurrent"
+}
+```
+
+#### Get Bulk Status
+```http
+GET /api/v1/bulk/{orchestratorId}/status
+```
+
+**Response:**
+```json
+{
+  "orchestratorId": "bulk-orch-1234567890",
+  "status": "Running",
+  "progress": {
+    "totalBatches": 20,
+    "completedBatches": 8,
+    "currentBatch": 9,
+    "totalExecutions": 10000,
+    "completedExecutions": 4000
+  },
+  "metrics": {
+    "successRate": 0.98,
+    "failureRate": 0.02,
+    "averageDuration": 1.5,
+    "lastUpdated": 1709999999
+  }
+}
+```
+
+#### Pause Bulk
+```http
+POST /api/v1/bulk/{orchestratorId}/pause
+```
+
+**Response:**
+```json
+{
+  "orchestratorId": "bulk-orch-1234567890",
+  "action": "pause",
+  "success": true,
+  "message": "Bulk execution paused successfully"
+}
+```
+
+#### Resume Bulk
+```http
+POST /api/v1/bulk/{orchestratorId}/resume
+```
+
+**Response:**
+```json
+{
+  "orchestratorId": "bulk-orch-1234567890",
+  "action": "resume",
+  "success": true,
+  "message": "Bulk execution resumed successfully"
+}
+```
+
+#### Cancel Bulk
+```http
+DELETE /api/v1/bulk/{orchestratorId}
+```
+
+**Response:**
+```json
+{
+  "orchestratorId": "bulk-orch-1234567890",
+  "action": "cancel",
+  "success": true,
+  "message": "Bulk execution cancelled successfully"
+}
+```
+
+#### List All Bulk Executions
+```http
+GET /api/v1/bulk
+```
+
+**Response:**
+```json
+[
+  {
+    "orchestratorId": "bulk-orch-1234567890",
+    "stateMachineId": "order-processing",
+    "status": "Running",
+    "totalEnqueued": 10000,
+    "startedAt": "2026-03-09T10:00:00Z"
+  }
+]
 ```
 
 ### Message/Resume Operations
