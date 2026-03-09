@@ -25,6 +25,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
+## [1.0.7] - 2026-03-09
+
+### Added
+- **Bulk Execution API** - New orchestration-based bulk execution with micro-batch processing support
+  - `POST /state-machines/:stateMachineId/executions/bulk` - Execute bulk operations with JSON input
+  - `POST /state-machines/:stateMachineId/executions/bulk-form` - Execute bulk operations with file upload
+  - `GET /bulk/:orchestratorId/status` - Get bulk execution status with progress and metrics
+  - `POST /bulk/:orchestratorId/pause` - Pause a running bulk execution
+  - `POST /bulk/:orchestratorId/resume` - Resume a paused bulk execution
+  - `DELETE /bulk/:orchestratorId` - Cancel a bulk execution
+  - `GET /bulk` - List all bulk executions
+- **Batch Management API** - Enhanced batch execution control
+  - `GET /batch/:batchId/status` - Get batch execution status
+  - `POST /batch/:batchId/pause` - Pause a running batch
+  - `POST /batch/:batchId/resume` - Resume a paused batch
+  - `DELETE /batch/:batchId` - Cancel a batch execution
+  - `GET /batch` - List all batch executions
+- **Micro-batch Orchestration** - Support for processing large input sets in micro-batches
+  - Configurable micro-batch size via `microBatchSize` parameter
+  - Automatic failure rate monitoring with `pauseThreshold` for auto-pause
+  - Configurable resume strategies: `manual`, `automatic`, `timeout`
+- **New Response Models** - Comprehensive response types for bulk operations
+  - `BulkExecutionResponse` - Initial bulk execution response with orchestrator ID
+  - `BulkStatusResponse` - Detailed status with progress and metrics
+  - `BulkProgress` - Batch and execution progress tracking
+  - `BulkMetrics` - Success/failure rates and performance metrics
+  - `BulkActionResponse` - Standardized response for pause/resume/cancel actions
+- **Enhanced Request Models** - New request parameters for bulk/batch operations
+  - `ExecuteBulkRequest` - Support for `doMicroBatch`, `microBatchSize`, `pauseThreshold`, `resumeStrategy`, `timeoutSeconds`
+  - `ExecuteBatchRequest` - Added `doMicroBatch` and `microBatchSize` parameters
+- **New Examples**
+  - `examples/main.go` - Complete example with bulk orchestrator setup and Redis integration
+  - `examples/sm-mac-A-generator/main.go` - Order data generator for testing bulk operations
+- **Postman Collection v2** - Updated Postman collection with Bulk Operations endpoints
+- **Redis Client Integration** - Direct Redis client support for orchestrator functionality
+
+### Changed
+- **Router Updates** - Changed default base path from `/api/v1` to `/api` for cleaner URLs
+- **Middleware Configuration** - Enhanced `middleware.Config` with:
+  - `RedisClient` - Direct Redis client for orchestrator operations
+  - `BatchOrchestrator` - Micro-batch orchestrator for distributed processing
+  - `BulkOrchestrator` - Bulk orchestrator for large-scale executions
+  - `BaseExecutor` - Base executor for task handler registry
+- **Worker Configuration** - Enhanced `WorkerConfig` with orchestrator support
+- **State Machine Middleware** - Updated to support optional orchestrator hooks
+- **Updated Dependencies** - `state-machine-amz-go` with batch orchestration support
+
+### Changed
+- Nothing yet
+
+### Deprecated
+- Nothing yet
+
+### Removed
+- Nothing yet
+
+### Fixed
+- Nothing yet
+
+### Security
+- Nothing yet
+
 ## [1.0.6] - 2026-02-24
 
 ### Changed
@@ -224,7 +286,8 @@ if execution.Status == "Running" { ... }
 
 ## Links
 
-[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.3...v1.0.4

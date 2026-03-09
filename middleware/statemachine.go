@@ -2,32 +2,50 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/batch"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
+	"github.com/redis/go-redis/v9"
 )
+
+const bulkOrchestratorKey = "bulkOrchestrator"
+const batchOrchestratorKey = "batchOrchestrator"
 
 // Config holds the configuration for the state machine middleware
 type Config struct {
 	RepositoryManager   *repository.Manager
 	QueueClient         *queue.Client
+	RedisClient         *redis.Client
 	BaseExecutor        *executor.BaseExecutor
+	BulkOrchestrator    *batch.Orchestrator  // Optional: BulkOrchestrator for micro-bulk signaling
+	BatchOrchestrator   *batch.Orchestrator  // Optional: BatchOrchestrator for micro-batch signaling
 	WorkerConfig        *WorkerConfig        // Optional: Configuration for background worker
 	BasePath            string               // e.g., "/api/v1"
 	TransformerRegistry *TransformerRegistry // Optional: Registry of custom transformers
 }
 
-// StateMachineMiddleware injects repository manager, queue client, and base executor into gin context
+// StateMachineMiddleware injects shared runtime dependencies into gin context
 func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if config.RepositoryManager != nil {
 			c.Set("repositoryManager", config.RepositoryManager)
 		}
+		if config.RedisClient != nil {
+			c.Set("redisClient", config.RedisClient)
+		}
+
 		if config.QueueClient != nil {
 			c.Set("queueClient", config.QueueClient)
 		}
 		if config.BaseExecutor != nil {
 			c.Set("baseExecutor", config.BaseExecutor)
+		}
+		if config.BulkOrchestrator != nil {
+			c.Set(bulkOrchestratorKey, config.BulkOrchestrator)
+		}
+		if config.BatchOrchestrator != nil {
+			c.Set(batchOrchestratorKey, config.BatchOrchestrator)
 		}
 		if config.WorkerConfig != nil {
 			c.Set("workerConfig", config.WorkerConfig)
@@ -72,13 +90,50 @@ func GetBaseExecutor(c *gin.Context) (*executor.BaseExecutor, bool) {
 	return baseExecutor, ok
 }
 
+func GetBulkOrchestrator(c *gin.Context) (*batch.Orchestrator, bool) {
+	orch, exists := c.Get(bulkOrchestratorKey)
+	if !exists {
+		return nil, false
+	}
+	orchestrator, ok := orch.(*batch.Orchestrator)
+	return orchestrator, ok
+}
+
+func GetBatchOrchestrator(c *gin.Context) (*batch.Orchestrator, bool) {
+	orch, exists := c.Get(batchOrchestratorKey)
+	if !exists {
+		return nil, false
+	}
+	orchestrator, ok := orch.(*batch.Orchestrator)
+	return orchestrator, ok
+}
+
+// GetOrchestrator retrieves the orchestrator from gin context
+func GetOrchestrator(c *gin.Context) (*batch.Orchestrator, bool) {
+	orch, exists := c.Get("orchestrator")
+	if !exists {
+		return nil, false
+	}
+	orchestrator, ok := orch.(*batch.Orchestrator)
+	return orchestrator, ok
+}
+
+func GetRedisClient(c *gin.Context) (*redis.Client, bool) {
+	client, exists := c.Get("redisClient")
+	if !exists {
+		return nil, false
+	}
+	redisClient, ok := client.(*redis.Client)
+	return redisClient, ok
+}
+
 func GetTransformerRegistry(c *gin.Context) (TransformerRegistry, bool) {
 	registry, exists := c.Get("transformerRegistry")
 	if !exists {
 		return nil, false
 	}
-	reg, ok := registry.(*TransformerRegistry)
-	return *reg, ok
+	reg, ok := registry.(TransformerRegistry)
+	return reg, ok
 }
 
 // ErrorHandler is a middleware that handles panics and returns proper error responses

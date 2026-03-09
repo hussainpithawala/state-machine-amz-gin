@@ -18,7 +18,7 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 	// Base path
 	basePath := config.BasePath
 	if basePath == "" {
-		basePath = "/api/v1"
+		basePath = "/api"
 	}
 
 	api := router.Group(basePath)
@@ -46,7 +46,21 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 
 		// Batch Execution
 		api.POST("/state-machines/:stateMachineId/executions/batch", handlers.ExecuteBatch)
+		api.GET("/batch/:batchId/status", handlers.GetBatchStatus)
+		api.POST("/batch/:batchId/pause", handlers.PauseBatchExecution)
+		api.POST("/batch/:batchId/resume", handlers.ResumeBatchExecution)
+		api.DELETE("/batch/:batchId", handlers.CancelBatchExecution)
+		api.GET("/batch", handlers.ListBatches)
 		api.POST("/queue/enqueue", handlers.EnqueueExecution)
+
+		// Bulk Execution with Orchestration
+		api.POST("/state-machines/:stateMachineId/executions/bulk", handlers.ExecuteBulk)
+		api.POST("/state-machines/:stateMachineId/executions/bulk-form", handlers.ExecuteBulkForm)
+		api.GET("/bulk/:orchestratorId/status", handlers.GetBulkStatus)
+		api.POST("/bulk/:orchestratorId/pause", handlers.PauseBulkExecution)
+		api.POST("/bulk/:orchestratorId/resume", handlers.ResumeBulkExecution)
+		api.DELETE("/bulk/:orchestratorId", handlers.CancelBulkExecution)
+		api.GET("/bulk", handlers.ListBulkExecutions)
 
 		// Message/Resume
 		api.POST("/executions/:executionId/resume", handlers.ResumeExecution)
