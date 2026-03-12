@@ -19,6 +19,7 @@ import (
 // WorkerConfig holds configuration for the background worker
 type WorkerConfig struct {
 	QueueConfig       *queue.Config
+	QueueClient       *queue.Client
 	RepositoryManager *repository.Manager
 	BaseExecutor      *executor.BaseExecutor
 	BatchOrchestrator *batch.Orchestrator
@@ -65,17 +66,36 @@ func NewWorker(config *WorkerConfig) (*Worker, error) {
 		return nil, nil
 	}
 
+	if config.QueueClient == nil {
+		log.Println("Warning: QueueClient is nil, worker cannot be created")
+		return nil, nil
+	}
+
 	// Create execution context adapter
 	execAdapter := executor.NewExecutionContextAdapter(config.BaseExecutor)
 
 	queueClient, _ := queue.NewClient(config.QueueConfig)
+
+	// Setup micro-batch bulkOrchestrator (optional)
+	if config.QueueClient != nil {
+		if config.BulkOrchestrator == nil && config.BatchOrchestrator == nil {
+			batchOrchestrator, bulkOrchestrator, err := createMiddlewareOrchestrator(context.Background(), config.RepositoryManager, config.QueueClient, config.RedisClient)
+			if err != nil {
+				log.Printf("Warning: Failed to create bulkOrchestrator: %v (continuing without bulkOrchestrator support)", err)
+			} else {
+				log.Println("BatchOrchestrator initialized successfully")
+			}
+			config.BulkOrchestrator = bulkOrchestrator
+			config.BatchOrchestrator = batchOrchestrator
+		}
+	}
 
 	// Create execution handler with executor
 	newExecutionHandlerWithContext := handler.NewExecutionHandlerWithContext(
 		config.RepositoryManager,
 		queueClient,
 		execAdapter,
-		config.BatchOrchestrator,
+		config.BulkOrchestrator,
 	)
 
 	// Create queue worker with handler
