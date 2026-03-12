@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/batch"
@@ -58,14 +57,8 @@ func StateMachineMiddleware(config *Config) gin.HandlerFunc {
 
 		// Setup micro-batch bulkOrchestrator (optional)
 		if config.QueueClient != nil {
-			batchOrchestrator, bulkOrchestrator, err := createMiddlewareOrchestrator(context.Background(), config.RepositoryManager, config.QueueClient, config.RedisClient)
-			if err != nil {
-				log.Printf("Warning: Failed to create bulkOrchestrator: %v (continuing without bulkOrchestrator support)", err)
-			} else {
-				log.Println("BatchOrchestrator initialized successfully")
-			}
-			c.Set(bulkOrchestratorKey, bulkOrchestrator)
-			c.Set(batchOrchestratorKey, batchOrchestrator)
+			c.Set(batchOrchestratorKey, config.BatchOrchestrator)
+			c.Set(bulkOrchestratorKey, config.BulkOrchestrator)
 		}
 
 		c.Next()

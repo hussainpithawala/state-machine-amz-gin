@@ -114,6 +114,7 @@ func main() {
 			BaseExecutor:      baseExecutor,
 			EnableWorker:      true, // Set to true to enable background worker
 			RedisClient:       redisClient,
+			QueueClient:       queueClient,
 		}
 	}
 
