@@ -110,8 +110,6 @@ func ExecuteBatch(c *gin.Context) {
 		req.Concurrency = 10
 	}
 
-	redisClient, ok := middleware.GetRedisClient(c)
-
 	// Build batch options
 	batchOpts := &statemachine.BatchExecutionOptions{
 		NamePrefix:        req.NamePrefix,
