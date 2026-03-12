@@ -25,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
+## [1.0.8] - 2026-03-12
+
+### Changed
+- **Simplified orchestrator initialization** - Moved orchestrator creation from `examples/main.go` to `middleware/worker.go`, centralizing the setup logic within the worker initialization
+- **Bulk execution handler fix** - Fixed bulk execution to use `config.BulkOrchestrator` instead of `config.BatchOrchestrator` in `NewExecutionHandlerWithContext` call
+- **Improved error handling** - Better error messages and early returns in bulk/batch execution handlers with Redis and Queue client retrieval moved earlier in handlers
+- **Queue client validation** - Added nil check for `QueueClient` in worker creation to prevent initialization failures
+
+### Removed
+- **Unused imports** - Removed `batch` and `persistent` package imports from `examples/main.go` that are no longer needed at the application level
+- **Unused dependency** - Removed `github.com/stretchr/objx v0.5.2` from `go.mod`
+
+### Added
+- **Docker portal service** - Enabled `state-machine-amz-portal` service in `docker-compose.yml` with updated image tag `latest`
+
 ## [1.0.7] - 2026-03-09
 
 ### Added
@@ -286,7 +301,8 @@ if execution.Status == "Running" { ... }
 
 ## Links
 
-[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.8...HEAD
+[1.0.8]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.4...v1.0.5

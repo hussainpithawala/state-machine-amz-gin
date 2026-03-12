@@ -27,7 +27,24 @@ func ExecuteBulk(c *gin.Context) {
 		})
 		return
 	}
-	orchestrator, hasOrchestrator := middleware.GetBulkOrchestrator(c)
+
+	redisClient, ok := middleware.GetRedisClient(c)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Redis client not configured",
+			Code:  http.StatusInternalServerError,
+		})
+		return
+	}
+	queueClient, okQueue := middleware.GetQueueClient(c)
+	if !okQueue {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Queue client not configured",
+			Code:  http.StatusInternalServerError,
+		})
+		return
+	}
+
 	stateMachineID := c.Param("stateMachineId")
 
 	var req models.ExecuteBulkRequest
@@ -67,6 +84,7 @@ func ExecuteBulk(c *gin.Context) {
 		StopOnError:       req.StopOnError,
 		DoMicroBatch:      req.DoMicroBatch,
 		MicroBatchSize:    req.MicroBatchSize,
+		RedisClient:       redisClient,
 	}
 
 	var execOpts []statemachine.ExecutionOption
@@ -86,27 +104,10 @@ func ExecuteBulk(c *gin.Context) {
 			return
 		}
 
-		if hasOrchestrator && orchestrator != nil && req.DoMicroBatch {
-			// Use orchestrator for micro-batch lifecycle management
-			errorChan, err := orchestrator.RunBulk(bgCtx, batchID, inputs, stateMachineID, bulkOpts, execOpts)
-			if err != nil {
-				// Log error but don't fail the HTTP request
-				fmt.Printf("Bulk execution failed to start: %v\n", err)
-				return
-			}
-
-			// Monitor for errors in background
-			go func() {
-				for err := range errorChan {
-					fmt.Printf("Bulk execution error: %v\n", err)
-				}
-			}()
-		} else {
-			// Fallback to regular bulk execution without orchestration
-			_, err := sm.ExecuteBulk(bgCtx, inputs, bulkOpts, execOpts...)
-			if err != nil {
-				fmt.Printf("Bulk execution failed: %v\n", err)
-			}
+		sm.SetQueueClient(queueClient)
+		_, bulkExecuteError := sm.ExecuteBulk(bgCtx, inputs, bulkOpts, execOpts...)
+		if bulkExecuteError != nil {
+			fmt.Printf("Bulk execution failed: %v\n", err)
 		}
 	}()
 
@@ -143,8 +144,25 @@ func ExecuteBulkForm(c *gin.Context) {
 		})
 		return
 	}
-	orchestrator, hasOrchestrator := middleware.GetBulkOrchestrator(c)
 	stateMachineID := c.Param("stateMachineId")
+
+	redisClient, ok := middleware.GetRedisClient(c)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Redis client not configured",
+			Code:  http.StatusInternalServerError,
+		})
+		return
+	}
+
+	queueClient, okQueue := middleware.GetQueueClient(c)
+	if !okQueue {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error: "Queue client not configured",
+			Code:  http.StatusInternalServerError,
+		})
+		return
+	}
 
 	// Parse form-data with memory limit of 32MB
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
@@ -258,6 +276,7 @@ func ExecuteBulkForm(c *gin.Context) {
 		StopOnError:       stopOnError,
 		DoMicroBatch:      doMicroBatch,
 		MicroBatchSize:    microBatchSize,
+		RedisClient:       redisClient,
 	}
 
 	var execOpts []statemachine.ExecutionOption
@@ -279,26 +298,11 @@ func ExecuteBulkForm(c *gin.Context) {
 			return
 		}
 
-		if hasOrchestrator && orchestrator != nil && doMicroBatch {
-			// Use orchestrator for micro-batch lifecycle management
-			errorChan, err := orchestrator.RunBulk(bgCtx, batchID, inputs, stateMachineID, bulkOpts, execOpts)
-			if err != nil {
-				fmt.Printf("Bulk execution failed to start: %v\n", err)
-				return
-			}
+		sm.SetQueueClient(queueClient)
 
-			// Monitor for errors in background
-			go func() {
-				for err := range errorChan {
-					fmt.Printf("Bulk execution error: %v\n", err)
-				}
-			}()
-		} else {
-			// Fallback to regular bulk execution without orchestration
-			_, err := sm.ExecuteBulk(bgCtx, inputs, bulkOpts, execOpts...)
-			if err != nil {
-				fmt.Printf("Bulk execution failed: %v\n", err)
-			}
+		_, bulkError := sm.ExecuteBulk(bgCtx, inputs, bulkOpts, execOpts...)
+		if bulkError != nil {
+			fmt.Printf("Bulk execution failed: %v\n", bulkError)
 		}
 	}()
 
