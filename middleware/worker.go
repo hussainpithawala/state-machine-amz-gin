@@ -75,7 +75,6 @@ func NewWorker(config *WorkerConfig) (*Worker, error) {
 		config.RepositoryManager,
 		queueClient,
 		execAdapter,
-		config.BatchOrchestrator,
 	)
 
 	// Create queue worker with handler
