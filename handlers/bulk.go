@@ -304,7 +304,6 @@ func ExecuteBulkForm(c *gin.Context) {
 		if bulkError != nil {
 			fmt.Printf("Bulk execution failed: %v\n", bulkError)
 		}
-
 	}()
 
 	// Return immediately - bulk is running in background

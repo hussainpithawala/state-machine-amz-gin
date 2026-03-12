@@ -35,6 +35,12 @@ func ExecuteBatch(c *gin.Context) {
 		return
 	}
 
+	redisClient, ok := middleware.GetRedisClient(c)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get redis client"})
+		return
+	}
+
 	queueClient, hasQueue := middleware.GetQueueClient(c)
 	stateMachineID := c.Param("stateMachineId")
 
@@ -103,8 +109,6 @@ func ExecuteBatch(c *gin.Context) {
 	if req.Concurrency == 0 {
 		req.Concurrency = 10
 	}
-
-	redisClient, ok := middleware.GetRedisClient(c)
 
 	// Build batch options
 	batchOpts := &statemachine.BatchExecutionOptions{
