@@ -28,17 +28,18 @@ type StartExecutionResponse struct {
 
 // ExecutionResponse represents a full execution response
 type ExecutionResponse struct {
-	ExecutionID    string                 `json:"executionId"`
-	StateMachineID string                 `json:"stateMachineId"`
-	Name           string                 `json:"name"`
-	Status         string                 `json:"status"`
-	CurrentState   string                 `json:"currentState"`
-	Input          interface{}            `json:"input,omitempty"`
-	Output         interface{}            `json:"output,omitempty"`
-	StartTime      *time.Time             `json:"startTime"`
-	EndTime        *time.Time             `json:"endTime,omitempty"`
-	Error          string                 `json:"error,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	ExecutionID           string                 `json:"executionId"`
+	StateMachineID        string                 `json:"stateMachineId"`
+	Name                  string                 `json:"name"`
+	Status                string                 `json:"status"`
+	CurrentState          string                 `json:"currentState"`
+	Input                 interface{}            `json:"input,omitempty"`
+	Output                interface{}            `json:"output,omitempty"`
+	StartTime             *time.Time             `json:"startTime"`
+	EndTime               *time.Time             `json:"endTime,omitempty"`
+	Error                 string                 `json:"error,omitempty"`
+	Metadata              map[string]interface{} `json:"metadata,omitempty"`
+	HistorySequenceNumber int                    `json:"historySequenceNumber,omitempty"`
 }
 
 // StateHistoryResponse represents a state history item
@@ -172,4 +173,12 @@ type BulkActionResponse struct {
 	Action         string `json:"action"`
 	Success        bool   `json:"success"`
 	Message        string `json:"message,omitempty"`
+}
+
+// ResumeOrchestratorResponse represents the response for resuming a stuck orchestrator
+type ResumeOrchestratorResponse struct {
+	BatchID      string `json:"batchId"`
+	MicroBatchID string `json:"microBatchId"`
+	Status       string `json:"status"` // "resumed", "not_found", "error"
+	Message      string `json:"message,omitempty"`
 }

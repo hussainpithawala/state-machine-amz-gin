@@ -92,3 +92,12 @@ type ExecuteBulkRequest struct {
 	ResumeStrategy string        `json:"resumeStrategy"` // Optional: "manual", "automatic", "timeout"
 	TimeoutSeconds int           `json:"timeoutSeconds"` // Optional: timeout for automatic resume
 }
+
+// ResumeOrchestratorRequest represents a request to resume a stuck orchestrator
+// Used to push orchestrators stuck at WaitForMicroBatchCompletion/WaitForBulkMicroBatchCompletion
+// to handle exceptional conditions
+type ResumeOrchestratorRequest struct {
+	BatchID          string `json:"batchId" binding:"required"`
+	MicroBatchID     string `json:"microBatchId" binding:"required"`
+	OrchestratorSMID string `json:"orchestratorSmId" binding:"required"` // "orchestrator" or "bulk-orchestrator"
+}

@@ -66,6 +66,7 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 		api.POST("/executions/:executionId/resume", handlers.ResumeExecution)
 		api.POST("/state-machines/:stateMachineId/resume-by-correlation", handlers.ResumeByCorrelation)
 		api.GET("/state-machines/:stateMachineId/waiting", handlers.FindWaitingExecutions)
+		api.POST("/orchestrator/resume", handlers.ResumeOrchestrator)
 	}
 
 	return router
