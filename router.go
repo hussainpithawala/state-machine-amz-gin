@@ -66,6 +66,16 @@ func SetupRouter(config *middleware.Config) *gin.Engine {
 		api.POST("/executions/:executionId/resume", handlers.ResumeExecution)
 		api.POST("/state-machines/:stateMachineId/resume-by-correlation", handlers.ResumeByCorrelation)
 		api.GET("/state-machines/:stateMachineId/waiting", handlers.FindWaitingExecutions)
+		api.POST("/orchestrator/resume", handlers.ResumeOrchestrator)
+
+		// Batch Streaming Control (Redis Signaling)
+		api.POST("/batch/resume/signal", handlers.SignalResume)
+		api.POST("/batch/resume/revoke", handlers.RevokeResume)
+		api.POST("/batch/resume/check", handlers.CheckResume)
+		// Convenience endpoints with batchID in path
+		api.POST("/batch/:batchId/resume/signal", handlers.SignalResumeParam)
+		api.POST("/batch/:batchId/resume/revoke", handlers.RevokeResumeParam)
+		api.GET("/batch/:batchId/resume/check", handlers.CheckResumeParam)
 	}
 
 	return router

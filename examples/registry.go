@@ -61,6 +61,14 @@ func RegisterGlobalFunctions(baseExecutor *executor.BaseExecutor) *executor.Stat
 		orderId := data["orderId"]
 		fmt.Printf("[Validate] Validating order: %v\n", orderId)
 
+		if id, ok := data["orderId"].(string); ok && len(id) > 0 && id[len(id)-1] == '9' {
+			// ~10 % of records end in '9' – simulate a retryable error.
+			// On retry the input is the same so the second attempt succeeds.
+			if _, already := data["_retry_ok"]; !already {
+				return nil, fmt.Errorf("transient enrich error (will retry)")
+			}
+		}
+
 		return map[string]interface{}{
 			"orderId":      orderId,
 			"validated":    true,

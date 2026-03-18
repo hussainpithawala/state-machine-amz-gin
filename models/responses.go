@@ -28,17 +28,18 @@ type StartExecutionResponse struct {
 
 // ExecutionResponse represents a full execution response
 type ExecutionResponse struct {
-	ExecutionID    string                 `json:"executionId"`
-	StateMachineID string                 `json:"stateMachineId"`
-	Name           string                 `json:"name"`
-	Status         string                 `json:"status"`
-	CurrentState   string                 `json:"currentState"`
-	Input          interface{}            `json:"input,omitempty"`
-	Output         interface{}            `json:"output,omitempty"`
-	StartTime      *time.Time             `json:"startTime"`
-	EndTime        *time.Time             `json:"endTime,omitempty"`
-	Error          string                 `json:"error,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	ExecutionID           string                 `json:"executionId"`
+	StateMachineID        string                 `json:"stateMachineId"`
+	Name                  string                 `json:"name"`
+	Status                string                 `json:"status"`
+	CurrentState          string                 `json:"currentState"`
+	Input                 interface{}            `json:"input,omitempty"`
+	Output                interface{}            `json:"output,omitempty"`
+	StartTime             *time.Time             `json:"startTime"`
+	EndTime               *time.Time             `json:"endTime,omitempty"`
+	Error                 string                 `json:"error,omitempty"`
+	Metadata              map[string]interface{} `json:"metadata,omitempty"`
+	HistorySequenceNumber int                    `json:"historySequenceNumber,omitempty"`
 }
 
 // StateHistoryResponse represents a state history item
@@ -172,4 +173,37 @@ type BulkActionResponse struct {
 	Action         string `json:"action"`
 	Success        bool   `json:"success"`
 	Message        string `json:"message,omitempty"`
+}
+
+// ResumeOrchestratorResponse represents the response for resuming a stuck orchestrator
+type ResumeOrchestratorResponse struct {
+	BatchID      string `json:"batchId"`
+	MicroBatchID string `json:"microBatchId"`
+	Status       string `json:"status"` // "resumed", "not_found", "error"
+	Message      string `json:"message,omitempty"`
+}
+
+// SignalResumeResponse represents the response for signaling a batch resume
+type SignalResumeResponse struct {
+	BatchID   string `json:"batchId"`
+	Status    string `json:"status"` // "signaled", "error"
+	ResumedBy string `json:"resumedBy,omitempty"`
+	ResumedAt string `json:"resumedAt,omitempty"`
+	Message   string `json:"message,omitempty"`
+}
+
+// RevokeResumeResponse represents the response for revoking a resume signal
+type RevokeResumeResponse struct {
+	BatchID string `json:"batchId"`
+	Status  string `json:"status"` // "revoked", "not_found", "error"
+	Message string `json:"message,omitempty"`
+}
+
+// CheckResumeResponse represents the response for checking a resume signal
+type CheckResumeResponse struct {
+	BatchID       string `json:"batchId"`
+	ShouldResume  bool   `json:"shouldResume"`
+	ResumedBy     string `json:"resumedBy,omitempty"`
+	ResumedAt     string `json:"resumedAt,omitempty"`
+	SignalPresent bool   `json:"signalPresent"` // true if signal was present and consumed
 }

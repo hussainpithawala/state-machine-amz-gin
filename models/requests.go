@@ -92,3 +92,30 @@ type ExecuteBulkRequest struct {
 	ResumeStrategy string        `json:"resumeStrategy"` // Optional: "manual", "automatic", "timeout"
 	TimeoutSeconds int           `json:"timeoutSeconds"` // Optional: timeout for automatic resume
 }
+
+// ResumeOrchestratorRequest represents a request to resume a stuck orchestrator
+// Used to push orchestrators stuck at WaitForMicroBatchCompletion/WaitForBulkMicroBatchCompletion
+// to handle exceptional conditions
+type ResumeOrchestratorRequest struct {
+	BatchID          string `json:"batchId" binding:"required"`
+	MicroBatchID     string `json:"microBatchId" binding:"required"`
+	OrchestratorSMID string `json:"orchestratorSmId" binding:"required"` // "orchestrator" or "bulk-orchestrator"
+}
+
+// SignalResumeRequest represents a request to signal a paused batch to resume
+// Used for human-in-the-loop pause/resume cycle via Redis signaling
+type SignalResumeRequest struct {
+	BatchID  string `json:"batchId" binding:"required"`
+	Operator string `json:"operator" binding:"required"` // Operator name/ID
+	Notes    string `json:"notes"`                       // Optional notes about the resume
+}
+
+// RevokeResumeRequest represents a request to revoke an unconsumed resume signal
+type RevokeResumeRequest struct {
+	BatchID string `json:"batchId" binding:"required"`
+}
+
+// CheckResumeRequest represents a request to check for a resume signal
+type CheckResumeRequest struct {
+	BatchID string `json:"batchId" binding:"required"`
+}
