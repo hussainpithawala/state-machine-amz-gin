@@ -661,6 +661,129 @@
             "description": "Resume a stuck orchestrator (WaitForMicroBatchCompletion/WaitForBulkMicroBatchCompletion) to handle exceptional conditions. Use this when orchestrator is waiting for micro-batch completion signals that may have been lost or delayed.\n\norchestratorSmId values:\n- 'orchestrator' - for standard batch orchestrator\n- 'bulk-orchestrator' - for bulk orchestrator"
           },
           "response": []
+        },
+        {
+          "name": "Signal Resume (JSON Body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"batch-123\",\n  \"operator\": \"admin-user\",\n  \"notes\": \"Manual resume after investigating issue\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/batch/resume/signal",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "resume", "signal"]
+            },
+            "description": "Signal a paused batch to resume via Redis signaling. Used for human-in-the-loop pause/resume cycle. The operator sets a resume signal that the batch execution polls.\n\n- batchId: The ID of the paused batch\n- operator: Name/ID of the operator resuming\n- notes: Optional notes about the resume action"
+          },
+          "response": []
+        },
+        {
+          "name": "Signal Resume (Path Param)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/batch/{{batchId}}/resume/signal?operator=admin-user&notes=Manual+resume",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "{{batchId}}", "resume", "signal"],
+              "query": [
+                {
+                  "key": "operator",
+                  "value": "admin-user",
+                  "description": "Operator name/ID"
+                },
+                {
+                  "key": "notes",
+                  "value": "Manual resume",
+                  "description": "Optional notes"
+                }
+              ]
+            },
+            "description": "Convenience endpoint to signal resume with batchId in path. Useful for curl commands."
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Resume (JSON Body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"batch-123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/batch/resume/revoke",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "resume", "revoke"]
+            },
+            "description": "Remove an unconsumed resume signal (e.g., operator changed their mind). This is useful when an operator wants to cancel a previously set resume signal before the batch execution has consumed it."
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Resume (Path Param)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/batch/{{batchId}}/resume/revoke",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "{{batchId}}", "resume", "revoke"]
+            },
+            "description": "Convenience endpoint to revoke resume signal with batchId in path."
+          },
+          "response": []
+        },
+        {
+          "name": "Check Resume (JSON Body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"batch-123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/batch/resume/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "resume", "check"]
+            },
+            "description": "Check for a resume signal and atomically consume it using Redis GETDEL. Returns shouldResume=true if a valid signal was present. The signal is consumed so subsequent calls will return false."
+          },
+          "response": []
+        },
+        {
+          "name": "Check Resume (Path Param)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/batch/{{batchId}}/resume/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["batch", "{{batchId}}", "resume", "check"]
+            },
+            "description": "Convenience endpoint to check resume signal with batchId in path. Returns whether the batch should resume and who signaled it."
+          },
+          "response": []
         }
       ]
     },
