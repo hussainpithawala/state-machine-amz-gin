@@ -25,6 +25,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
+## [1.0.9] - 2026-03-18
+
+### Added
+- **ResumeOrchestrator API** - New endpoint to resume stuck orchestrators handling exceptional conditions
+  - `POST /orchestrator/resume` - Resume orchestrators stuck at `WaitForMicroBatchCompletion`/`WaitForBulkMicroBatchCompletion`
+  - Pushes orchestrators to handle exceptional conditions when micro-batch completion signals are lost or delayed
+- **Redis Signaling Control API** - Human-in-the-loop pause/resume cycle for batch streaming executions
+  - `POST /batch/resume/signal` - Signal a paused batch to resume (JSON body)
+  - `POST /batch/:batchId/resume/signal` - Signal resume (path parameter + query string)
+  - `POST /batch/resume/revoke` - Revoke unconsumed resume signal (JSON body)
+  - `POST /batch/:batchId/resume/revoke` - Revoke signal (path parameter)
+  - `POST /batch/resume/check` - Check and atomically consume resume signal using Redis GETDEL
+  - `GET /batch/:batchId/resume/check` - Check resume signal (path parameter)
+- **New Request Models**
+  - `ResumeOrchestratorRequest` - Request to resume stuck orchestrator with batch/micro-batch IDs
+  - `SignalResumeRequest` - Signal resume with operator and optional notes
+  - `RevokeResumeRequest` - Revoke resume signal for a batch
+  - `CheckResumeRequest` - Check for resume signal
+- **New Response Models**
+  - `ResumeOrchestratorResponse` - Response with resume status and message
+  - `SignalResumeResponse` - Response with signal confirmation and timestamp
+  - `RevokeResumeResponse` - Response with revoke confirmation
+  - `CheckResumeResponse` - Response with `shouldResume` flag and signal metadata
+- **New Handler File**
+  - `handlers/resume.go` - Dedicated handler for Redis-based batch streaming control
+- **Postman Collection v3** - New Postman collection with all orchestration and signaling endpoints
+
+### Changed
+- **Dependency Update** - Updated `state-machine-amz-go` to v1.2.12 for ResumeController support
+- **Docker Compose** - Re-enabled `state-machine-amz-portal` service in `docker-examples/docker-compose.yml`
+
+### Technical Details
+- **Atomic Signal Consumption** - Uses Redis GETDEL to ensure resume signals are consumed exactly once
+- **Dual API Style** - Both JSON body and path parameter endpoints for operational flexibility
+- **Operator Tracking** - Resume signals include operator ID and timestamp for audit trails
+
 ## [1.0.8] - 2026-03-12
 
 ### Changed
