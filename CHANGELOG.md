@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing yet
 
 ### Changed
-- Nothing yet
+- **Dependency Update** - Updated `state-machine-amz-go` to v1.2.13
 
 ### Deprecated
 - Nothing yet
