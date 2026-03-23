@@ -18,7 +18,7 @@ func main() {
 	orders := generateOrders(1000)
 
 	// Write to file
-	err := saveToFile("orders.json", orders)
+	err := saveToFile("orders-2.json", orders)
 	if err != nil {
 		fmt.Printf("Error saving to file: %v\n", err)
 		return

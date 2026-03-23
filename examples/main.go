@@ -11,12 +11,21 @@ import (
 	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/executor"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/queue"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/recovery"
 	"github.com/hussainpithawala/state-machine-amz-go/pkg/repository"
+	"github.com/hussainpithawala/state-machine-amz-go/pkg/statemachine/persistent"
 	"github.com/redis/go-redis/v9"
 )
 
 func main() {
 	ctx := context.Background()
+
+	// Recovery scanner configuration
+	const (
+		scanInterval        = 5 * time.Second  // How often to scan for orphaned executions
+		orphanedThreshold   = 10 * time.Second // Time after which RUNNING execution is considered orphaned
+		maxRecoveryAttempts = 3                // Maximum recovery attempts
+	)
 
 	// Setup repository manager (PostgreSQL with GORM)
 	repoConfig := &repository.Config{
@@ -71,10 +80,46 @@ func main() {
 		log.Printf("Failed to list state machines: %v", err)
 	}
 
+	// Create persistent state machines and start recovery scanner for each
+	var persistentStateMachines []*persistent.StateMachine
 	for i := 0; i < len(allStateMachines); i++ {
 		queueName := allStateMachines[i].ID
 		queueConfig.Queues[queueName] = 5
+
+		// Create persistent state machine with recovery support
+		sm := allStateMachines[i]
+		psm, err := persistent.NewFromDefnId(ctx, sm.ID, repoManager)
+		if err != nil {
+			log.Printf("Warning: failed to create persistent state machine for %s: %v", sm.ID, err)
+			continue
+		}
+		persistentStateMachines = append(persistentStateMachines, psm)
+
+		// Configure and start recovery scanner for this state machine
+		recoveryConfig := &recovery.RecoveryConfig{
+			Enabled:                    true,
+			ScanInterval:               scanInterval,
+			OrphanedThreshold:          orphanedThreshold,
+			DefaultRecoveryStrategy:    recovery.StrategyRetry,
+			DefaultMaxRecoveryAttempts: maxRecoveryAttempts,
+			StateMachineID:             sm.ID,
+		}
+
+		if err := psm.StartRecoveryScanner(recoveryConfig); err != nil {
+			log.Printf("Failed to start recovery scanner for %s: %v", sm.ID, err)
+		} else {
+			log.Printf("Recovery scanner started for state machine: %s", sm.ID)
+		}
 	}
+
+	// Defer stopping all recovery scanners
+	defer func() {
+		for _, psm := range persistentStateMachines {
+			if err := psm.StopRecoveryScanner(); err != nil {
+				log.Printf("Warning: failed to stop recovery scanner for %s: %v", psm.GetID(), err)
+			}
+		}
+	}()
 
 	queueClient, err := queue.NewClient(queueConfig)
 	if err != nil {
