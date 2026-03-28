@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-03-29
+
+### Changed
+- **Dependency Update** - Updated `state-machine-amz-go` to v1.2.17
+
 ## [1.1.3] - 2026-03-28
 
 ### Changed
@@ -350,7 +355,8 @@ if execution.Status == "Running" { ... }
 
 ## Links
 
-[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.2.16...HEAD
+[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.2.17...HEAD
+[1.2.17]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.3...v1.2.17
 [1.2.16]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.2...v1.2.16
 [1.1.2]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.0...v1.1.1
