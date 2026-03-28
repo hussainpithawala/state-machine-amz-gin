@@ -31,7 +31,7 @@ NC := \033[0m
 ##@ Development
 
 # Get the golangci-lint binary path from the system
-LINT_BIN := $(shell command -v golangci-lint 2> /dev/null)
+LINT_BIN := $(shell command -v golangci-lint version --short 2> /dev/null)
 
 .PHONY: install
 install: ## Install dependencies
@@ -85,12 +85,16 @@ vet: ## Run go vet
 	$(GOVET) ./...
 	@echo "$(GREEN)Vet passed$(NC)"
 
-install-lint:
+install-lint: ## Install golangci-lint if not present
 ifndef LINT_BIN
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b /usr/local/bin latest
+	@echo "golangci-lint not found. Installing..."
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 else
-	@golangci-lint version
 	@echo "golangci-lint is already installed."
+	@if ! golangci-lint version --short | grep -q "2"; then \
+		echo "${YELLOW}Installed golangci-lint is v1, but v2 is required. Reinstalling...${RESET}"; \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0; \
+	fi
 endif
 
 .PHONY: lint

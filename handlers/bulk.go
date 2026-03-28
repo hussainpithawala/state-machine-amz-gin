@@ -470,7 +470,7 @@ func ListBulkExecutions(c *gin.Context) {
 		return
 	}
 
-	var bulkStatuses []models.BulkStatusResponse
+	bulkStatuses := make([]models.BulkStatusResponse, 0, len(executions))
 	for _, exec := range executions {
 		bulkStatus := models.BulkStatusResponse{
 			OrchestratorID: exec.ExecutionID,

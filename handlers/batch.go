@@ -42,9 +42,10 @@ func ExecuteBatch(c *gin.Context) {
 	}
 
 	queueClient, hasQueue := middleware.GetQueueClient(c)
-	stateMachineID := c.Param("stateMachineId")
+	var targetStateMachineId = c.Param("stateMachineId")
 
 	var req models.ExecuteBatchRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "Invalid request",
@@ -55,10 +56,10 @@ func ExecuteBatch(c *gin.Context) {
 	}
 
 	// Load state machine
-	sm, err := persistent.NewFromDefnId(c.Request.Context(), stateMachineID, repoManager)
+	sm, err := persistent.NewFromDefnId(c.Request.Context(), targetStateMachineId, repoManager)
 	if err != nil {
 		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Error:   "State machine not found",
+			Error:   "Target State machine not found",
 			Message: err.Error(),
 			Code:    http.StatusNotFound,
 		})
@@ -76,9 +77,17 @@ func ExecuteBatch(c *gin.Context) {
 		sourceExecutionFilter = &repository.ExecutionFilter{}
 
 		if req.Filter.SourceStateMachineId != "" {
-			sourceExecutionFilter.StateMachineID = req.Filter.SourceStateMachineId
-		} else {
-			sourceExecutionFilter.StateMachineID = stateMachineID
+			sourceStateMachineId := req.Filter.SourceStateMachineId
+			_, err := persistent.NewFromDefnId(c.Request.Context(), sourceStateMachineId, repoManager)
+			if err != nil {
+				c.JSON(http.StatusNotFound, models.ErrorResponse{
+					Error:   "Source State machine not found",
+					Message: err.Error(),
+					Code:    http.StatusNotFound,
+				})
+				return
+			}
+			sourceExecutionFilter.StateMachineID = sourceStateMachineId
 		}
 
 		if req.Filter.Status != "" {
@@ -156,14 +165,14 @@ func ExecuteBatch(c *gin.Context) {
 		bgCtx := context.Background()
 
 		// Reload state machine with background context
-		smBg, err := persistent.NewFromDefnId(bgCtx, stateMachineID, repoManager)
+		smBg, err := persistent.NewFromDefnId(bgCtx, targetStateMachineId, repoManager)
 		if err != nil {
 			fmt.Printf("Failed to load state machine for batch: %v\n", err)
 			return
 		}
 
 		// Set queue client if available and mode is distributed
-		if hasQueue && req.Mode == "distributed" {
+		if hasQueue {
 			smBg.SetQueueClient(queueClient)
 		}
 
@@ -513,7 +522,7 @@ func ListBatches(c *gin.Context) {
 	}
 
 	// Convert map to slice
-	var batches []models.BulkStatusResponse
+	batches := make([]models.BulkStatusResponse, 0, len(batchMap))
 	for _, batch := range batchMap {
 		batches = append(batches, *batch)
 	}
