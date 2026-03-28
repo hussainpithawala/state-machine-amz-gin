@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-03-28
+
+### Changed
+- **Enhanced state machine validation** - Added validation for both target and source state machine IDs in batch execution handler
+  - Returns 404 error if target state machine does not exist
+  - Validates source state machine ID from filter when provided
+- **Improved error messages** - More descriptive error messages for state machine not found errors
+- **Simplified queue client logic** - Removed mode check when setting queue client on background state machine instance
+
+### Fixed
+- **Slice pre-allocation** - Pre-allocate slices in `ListBatches` and `ListBulkExecutions` to avoid repeated reallocations (prealloc linter warning)
+
+### Technical
+- **Makefile improvements** - Enhanced golangci-lint installation and version management
+  - Install golangci-lint v2.5.0 via `go install` instead of curl script
+  - Add version check to ensure v2 is installed
+  - Better user feedback during installation
+
 ## [1.1.1] - 2026-03-24
 
 ### Changed
@@ -327,7 +345,8 @@ if execution.Status == "Running" { ... }
 
 ## Links
 
-[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.9...v1.1.0
 [1.0.9]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.0.8...v1.0.9
