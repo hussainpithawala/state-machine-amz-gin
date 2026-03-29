@@ -56,6 +56,7 @@ type ExecuteBatchRequest struct {
 // BatchExecutionFilterRequest represents filter parameters for listing executions
 type BatchExecutionFilterRequest struct {
 	SourceStateMachineId   string   `json:"sourceStateMachineId"`
+	CurrentState           string   `json:"currentState"`
 	SourceStateName        string   `json:"sourceStateName,omitempty"`        // Optional: specific state's output to use from source execution
 	SourceInputTransformer string   `json:"sourceInputTransformer,omitempty"` // Optional: JSONPath or transformation expression to apply
 	ApplyUnique            bool     `json:"applyUnique,omitempty"`

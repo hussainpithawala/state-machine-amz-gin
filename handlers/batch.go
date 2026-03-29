@@ -90,6 +90,10 @@ func ExecuteBatch(c *gin.Context) {
 			sourceExecutionFilter.StateMachineID = sourceStateMachineId
 		}
 
+		if req.Filter.CurrentState != "" {
+			sourceExecutionFilter.CurrentState = req.Filter.CurrentState
+		}
+
 		if req.Filter.Status != "" {
 			sourceExecutionFilter.Status = req.Filter.Status
 		}
