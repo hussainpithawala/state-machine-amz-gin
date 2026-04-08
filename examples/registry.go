@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/hussainpithawala/state-machine-amz-gin/middleware"
@@ -65,7 +66,68 @@ func RegisterGlobalFunctions(baseExecutor *executor.BaseExecutor) *executor.Stat
 			"orderId":      orderId,
 			"validated":    true,
 			"validatedAt":  time.Now().Format(time.RFC3339),
-			"originalData": data,
+			"process_data": data,
+		}, nil
+	})
+
+	baseExecutor.RegisterGoFunction("random_pay:order", func(ctx context.Context, input interface{}) (interface{}, error) {
+		data := input.(map[string]interface{})
+		orderId := data["orderId"]
+		paychoices := []string{"credit_card", "paypal"}
+		randomChoice := paychoices[rand.Intn(len(paychoices))]
+
+		fmt.Printf("[Randomizing] pay order: %v\n", orderId)
+		return map[string]interface{}{
+			"orderId":        orderId,
+			"payment_method": randomChoice,
+			"choiceAt":       time.Now().Format(time.RFC3339),
+			"validated_data": data,
+		}, nil
+	})
+
+	baseExecutor.RegisterGoFunction("process:credit_card", func(ctx context.Context, input interface{}) (interface{}, error) {
+		data := input.(map[string]interface{})
+		orderId := data["orderId"]
+		fmt.Printf("Credit-Card processing for orderId: %v\n", orderId)
+		return map[string]interface{}{
+			"orderId":        orderId,
+			"paidAt":         time.Now().Format(time.RFC3339),
+			"channel":        "credit_card",
+			"validated_data": data,
+		}, nil
+	})
+
+	baseExecutor.RegisterGoFunction("process:paypal", func(ctx context.Context, input interface{}) (interface{}, error) {
+		data := input.(map[string]interface{})
+		orderId := data["orderId"]
+		fmt.Printf("Paypal processing for orderId: %v\n", orderId)
+		return map[string]interface{}{
+			"orderId":        orderId,
+			"paidAt":         time.Now().Format(time.RFC3339),
+			"channel":        "paypal",
+			"validated_data": data,
+		}, nil
+	})
+	baseExecutor.RegisterGoFunction("send_cc_notifications:data", func(ctx context.Context, input interface{}) (interface{}, error) {
+		data := input.(map[string]interface{})
+		orderId := data["orderId"]
+		fmt.Printf("CC SMS Notifications for orderId: %v\n", orderId)
+		return map[string]interface{}{
+			"orderId":         orderId,
+			"notificationsAt": time.Now().Format(time.RFC3339),
+			"channel":         "paypal",
+			"medium":          "Email",
+		}, nil
+	})
+	baseExecutor.RegisterGoFunction("send_paypal_notifications:data", func(ctx context.Context, input interface{}) (interface{}, error) {
+		data := input.(map[string]interface{})
+		orderId := data["orderId"]
+		fmt.Printf("Paypal Email Notifications for orderId: %v\n", orderId)
+		return map[string]interface{}{
+			"orderId":         orderId,
+			"notificationsAt": time.Now().Format(time.RFC3339),
+			"channel":         "paypal",
+			"medium":          "Email",
 		}, nil
 	})
 

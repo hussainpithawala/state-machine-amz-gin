@@ -94,6 +94,10 @@ func ExecuteBatch(c *gin.Context) {
 			sourceExecutionFilter.CurrentState = req.Filter.CurrentState
 		}
 
+		if req.Filter.SourceStateName != "" {
+			sourceExecutionFilter.CurrentState = req.Filter.SourceStateName
+		}
+
 		if req.Filter.Status != "" {
 			sourceExecutionFilter.Status = req.Filter.Status
 		}
@@ -126,6 +130,8 @@ func ExecuteBatch(c *gin.Context) {
 	// Build batch options
 	batchOpts := &statemachine.BatchExecutionOptions{
 		NamePrefix:        req.NamePrefix,
+		UseGroupEnqueue:   req.GroupEnqueue,
+		GroupConcurrency:  req.Concurrency,
 		ConcurrentBatches: req.Concurrency,
 		StopOnError:       req.StopOnError,
 		DoMicroBatch:      req.DoMicroBatch,
@@ -163,6 +169,7 @@ func ExecuteBatch(c *gin.Context) {
 
 	// Generate batch ID
 	batchID := fmt.Sprintf("%s-%d", req.NamePrefix, time.Now().Unix())
+	batchOpts.BatchId = batchID
 
 	// Execute batch in goroutine with background context to prevent cancellation
 	go func() {

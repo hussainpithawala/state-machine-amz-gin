@@ -44,6 +44,7 @@ type ResumeByCorrelationRequest struct {
 // ExecuteBatchRequest represents a request to execute a batch of executions
 type ExecuteBatchRequest struct {
 	Filter            *BatchExecutionFilterRequest `json:"filter"`
+	GroupEnqueue      bool                         `json:"groupEnqueue"`
 	NamePrefix        string                       `json:"namePrefix"`
 	Concurrency       int                          `json:"concurrency"`
 	Mode              string                       `json:"mode"` // "distributed", "concurrent", "sequential"
