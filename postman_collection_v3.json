@@ -368,7 +368,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"filter\": {\n    \"status\": \"\",\n    \"startTimeFrom\": 0,\n    \"startTimeTo\": 0,\n    \"namePattern\": \"\",\n    \"limit\": 100,\n    \"offset\": 0,\n    \"states\": []\n  },\n  \"namePrefix\": \"bulk-operation\",\n  \"concurrency\": 10,\n  \"mode\": \"concurrent\",\n  \"stopOnError\": false,\n  \"executionNameList\": [],\n  \"doMicroBatch\": true,\n  \"microBatchSize\": 500,\n  \"orchestratorId\": \"\",\n  \"pauseThreshold\": 0.1,\n  \"resumeStrategy\": \"manual\",\n  \"timeoutSeconds\": 300\n}"
+              "raw": "{\n  \"namePrefix\": \"bulk-operation\",\n  \"groupEnqueue\": false,\n  \"concurrency\": 10,\n  \"mode\": \"concurrent\",\n  \"stopOnError\": false,\n  \"doMicroBatch\": true,\n  \"microBatchSize\": 500,\n  \"orchestratorId\": \"\",\n  \"pauseThreshold\": 0.1,\n  \"resumeStrategy\": \"manual\",\n  \"timeoutSeconds\": 300,\n  \"inputs\": []\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions/bulk",
@@ -398,6 +398,12 @@
                   "value": "bulk-form",
                   "type": "text",
                   "description": "Prefix for execution names"
+                },
+                {
+                  "key": "groupEnqueue",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Enable group enqueue mode"
                 },
                 {
                   "key": "concurrency",

@@ -83,6 +83,7 @@ type EnqueueExecutionRequest struct {
 // ExecuteBulkRequest represents a request to execute a bulk operation with orchestration
 type ExecuteBulkRequest struct {
 	NamePrefix     string        `json:"namePrefix"`
+	GroupEnqueue   bool          `json:"groupEnqueue"`
 	Concurrency    int           `json:"concurrency"`
 	Mode           string        `json:"mode"` // "distributed", "concurrent", "sequential"
 	StopOnError    bool          `json:"stopOnError"`

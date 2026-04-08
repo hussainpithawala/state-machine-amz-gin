@@ -15,7 +15,7 @@ type Order struct {
 }
 
 func main() {
-	orders := generateOrders(1000_000)
+	orders := generateOrders(1000_00)
 
 	// Write to file
 	err := saveToFile("orders-2.json", orders)
