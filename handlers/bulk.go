@@ -175,7 +175,7 @@ func ExecuteBulkForm(c *gin.Context) {
 	}
 
 	// Get inputs file
-	file, header, err := c.Request.FormFile("inputs")
+	file, _, err := c.Request.FormFile("inputs")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "Missing inputs file",
@@ -189,16 +189,6 @@ func ExecuteBulkForm(c *gin.Context) {
 			fmt.Printf("Error closing file: %v\n", closeErr)
 		}
 	}()
-
-	// Validate file size (max 10MB)
-	if header.Size > 10<<20 {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error:   "File too large",
-			Message: "Inputs file must be less than 10MB",
-			Code:    http.StatusBadRequest,
-		})
-		return
-	}
 
 	// Read and parse JSON file
 	fileBytes, err := io.ReadAll(file)
