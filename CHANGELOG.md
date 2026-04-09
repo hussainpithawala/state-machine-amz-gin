@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2026-04-09
+
+### Added
+- **Group enqueue support for bulk operations** - Added `groupEnqueue` parameter for bulk execution requests
+  - Enables grouped task enqueue for better organization and processing
+  - Updated request handling logic to support the new parameter
+
+### Changed
+- **Dependency Update** - Updated `state-machine-amz-go` to v1.2.19
+- **Removed local replace directive** - Cleaned up `go.mod` to use published dependency versions
+
+### Fixed
+- **Bulk handler validation** - Removed unnecessary file size validation for input files in bulk execution
+  - Allows more flexible file uploads without arbitrary size constraints
+
 ## [1.1.5] - 2026-03-29
 
 ### Added
@@ -365,7 +380,8 @@ if execution.Status == "Running" { ... }
 
 ## Links
 
-[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.6...HEAD
+[1.1.6]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/hussainpithawala/state-machine-amz-gin/compare/v1.1.2...v1.1.3
