@@ -1,0 +1,13 @@
+{
+  "Comment": "CC Notifications Pipeline",
+  "Name": "cc_notifications",
+  "Id": "cc_notifications",
+  "StartAt": "Send_CC_Notifications",
+  "States": {
+    "Send_CC_Notifications": {
+      "Type": "Task",
+      "Resource": "send_cc_notifications:data",
+      "End": true
+    }
+  }
+}

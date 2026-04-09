@@ -1,0 +1,13 @@
+{
+  "Comment": "CC Notifications Pipeline",
+  "Id": "paypal_notifications",
+  "Name": "paypal_notifications",
+  "StartAt": "Send_Paypal_Notifications",
+  "States": {
+    "Send_Paypal_Notifications": {
+      "Type": "Task",
+      "Resource": "send_paypal_notifications:data",
+      "End": true
+    }
+  }
+}

@@ -73,6 +73,12 @@ func main() {
 			MaxRetry: 3,
 			Timeout:  10 * time.Minute,
 		},
+		GroupAggregation: &queue.GroupAggregationConfig{
+			Enabled:          true,
+			GroupMaxSize:     10_000,
+			GroupMaxDelay:    2 * time.Second,
+			GroupGracePeriod: 1 * time.Second,
+		},
 	}
 
 	allStateMachines, err := repoManager.ListStateMachines(ctx, nil)
@@ -85,6 +91,8 @@ func main() {
 	for i := 0; i < len(allStateMachines); i++ {
 		queueName := allStateMachines[i].ID
 		queueConfig.Queues[queueName] = 5
+		queueConfig.Concurrency = 10
+		queueConfig.RetryPolicy = &queue.RetryPolicy{}
 
 		// Create persistent state machine with recovery support
 		sm := allStateMachines[i]

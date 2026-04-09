@@ -270,7 +270,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"filter\": {\n    \"status\": \"FAILED\",\n    \"startTimeFrom\": 0,\n    \"startTimeTo\": 0,\n    \"namePattern\": \"\",\n    \"limit\": 10,\n    \"offset\": 0,\n    \"states\": []\n  },\n  \"namePrefix\": \"retry-batch\",\n  \"concurrency\": 5,\n  \"mode\": \"distributed\",\n  \"stopOnError\": false,\n  \"executionNameList\": []\n}"
+              "raw": "{\n  \"filter\": {\n    \"status\": \"FAILED\",\n    \"sourceStateName\": \"\",\n    \"startTimeFrom\": 0,\n    \"startTimeTo\": 0,\n    \"namePattern\": \"\",\n    \"limit\": 10,\n    \"offset\": 0,\n    \"states\": []\n  },\n  \"namePrefix\": \"retry-batch\",\n  \"groupEnqueue\": false,\n  \"concurrency\": 5,\n  \"mode\": \"distributed\",\n  \"stopOnError\": false,\n  \"executionNameList\": []\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/state-machines/{{stateMachineId}}/executions/batch",

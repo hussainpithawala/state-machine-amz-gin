@@ -80,7 +80,9 @@ func ExecuteBulk(c *gin.Context) {
 	// Build bulk options
 	bulkOpts := &statemachine.BulkExecutionOptions{
 		NamePrefix:        req.NamePrefix,
+		UseGroupEnqueue:   req.GroupEnqueue,
 		ConcurrentBatches: req.Concurrency,
+		GroupConcurrency:  req.Concurrency,
 		StopOnError:       req.StopOnError,
 		DoMicroBatch:      req.DoMicroBatch,
 		MicroBatchSize:    req.MicroBatchSize,
@@ -126,6 +128,7 @@ func ExecuteBulk(c *gin.Context) {
 // Form fields:
 // - inputs: JSON file containing array of inputs (required)
 // - namePrefix: Prefix for execution names (optional, default: "bulk-{timestamp}")
+// - groupEnqueue: Enable group enqueue mode (optional, default: false)
 // - concurrency: Number of concurrent executions (optional, default: 10)
 // - mode: Execution mode - "distributed", "concurrent", "sequential" (optional)
 // - stopOnError: Stop if an error occurs (optional, default: false)
@@ -175,7 +178,7 @@ func ExecuteBulkForm(c *gin.Context) {
 	}
 
 	// Get inputs file
-	file, header, err := c.Request.FormFile("inputs")
+	file, _, err := c.Request.FormFile("inputs")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "Missing inputs file",
@@ -189,16 +192,6 @@ func ExecuteBulkForm(c *gin.Context) {
 			fmt.Printf("Error closing file: %v\n", closeErr)
 		}
 	}()
-
-	// Validate file size (max 10MB)
-	if header.Size > 10<<20 {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error:   "File too large",
-			Message: "Inputs file must be less than 10MB",
-			Code:    http.StatusBadRequest,
-		})
-		return
-	}
 
 	// Read and parse JSON file
 	fileBytes, err := io.ReadAll(file)
@@ -239,6 +232,7 @@ func ExecuteBulkForm(c *gin.Context) {
 	doMicroBatchStr := c.PostForm("doMicroBatch")
 	microBatchSizeStr := c.PostForm("microBatchSize")
 	orchestratorID := c.PostForm("orchestratorId")
+	groupEnqueueStr := c.PostForm("groupEnqueue")
 
 	// Set defaults
 	if namePrefix == "" {
@@ -269,14 +263,21 @@ func ExecuteBulkForm(c *gin.Context) {
 		}
 	}
 
+	groupEnqueue := false
+	if groupEnqueueStr != "" {
+		groupEnqueue, _ = strconv.ParseBool(groupEnqueueStr)
+	}
+
 	// Build bulk options
 	bulkOpts := &statemachine.BulkExecutionOptions{
 		NamePrefix:        namePrefix,
+		UseGroupEnqueue:   groupEnqueue,
 		ConcurrentBatches: concurrency,
 		StopOnError:       stopOnError,
 		DoMicroBatch:      doMicroBatch,
 		MicroBatchSize:    microBatchSize,
 		RedisClient:       redisClient,
+		GroupConcurrency:  concurrency,
 	}
 
 	var execOpts []statemachine.ExecutionOption

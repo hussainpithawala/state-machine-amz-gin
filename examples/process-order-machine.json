@@ -1,0 +1,48 @@
+{
+  "Comment": "Order Processing Pipeline",
+  "Id": "order_processing_pipeline",
+  "Name": "order_processing_pipeline",
+  "StartAt": "ProcessOrder",
+  "States": {
+    "ProcessOrder": {
+      "Type": "Task",
+      "Resource": "process:order",
+      "Next": "ValidateOrder"
+    },
+    "ValidateOrder": {
+      "Type": "Task",
+      "Resource": "validate:order",
+      "Next": "RandomPayOrder"
+    },
+    "RandomPayOrder": {
+      "Type": "Task",
+      "Resource": "random_pay:order",
+      "Next": "PayChoice"
+    },
+    "PayChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.payment_method",
+          "StringEquals": "credit_card",
+          "Next": "ProcessCreditCard"
+        },
+        {
+          "Variable": "$.payment_method",
+          "StringEquals": "paypal",
+          "Next": "ProcessPayPal"
+        }
+      ]
+    },
+    "ProcessCreditCard": {
+      "Type": "Task",
+      "Resource": "process:credit_card",
+      "End": true
+    },
+    "ProcessPayPal": {
+      "Type": "Task",
+      "Resource": "process:paypal",
+      "End": true
+    }
+  }
+}
