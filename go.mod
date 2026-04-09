@@ -1,6 +1,6 @@
 module github.com/hussainpithawala/state-machine-amz-gin
 
-go 1.25.8
+go 1.25.9
 
 require (
 	github.com/gin-gonic/gin v1.11.0
