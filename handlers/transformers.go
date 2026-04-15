@@ -11,10 +11,9 @@ import (
 // ListExecutions lists executions for a state machine with filtering
 func ListTransformers(c *gin.Context) {
 	transformerRegistry, ok := middleware.GetTransformerRegistry(c)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error: "No Transformer Registry found",
-			Code:  http.StatusInternalServerError,
+	if !ok || transformerRegistry == nil {
+		c.JSON(http.StatusOK, models.ListTransformersResponse{
+			Transformers: []string{},
 		})
 		return
 	}
