@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hussainpithawala/state-machine-amz-gin/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -351,5 +352,10 @@ func TestListTransformers_NoRegistry(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response models.ListTransformersResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Empty(t, response.Transformers)
 }

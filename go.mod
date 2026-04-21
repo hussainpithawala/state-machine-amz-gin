@@ -5,7 +5,7 @@ go 1.25.9
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/hibiken/asynq v0.26.0
-	github.com/hussainpithawala/state-machine-amz-go v1.2.20
+	github.com/hussainpithawala/state-machine-amz-go v1.2.22
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/stretchr/testify v1.11.1
 )
